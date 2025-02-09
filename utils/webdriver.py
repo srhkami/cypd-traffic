@@ -36,16 +36,16 @@ def into_mailbox(browser):
   browser.find_element(By.XPATH, tags['交通違規信箱']).click()
 
 
-def get_intranet_headers(type: str = 'N') -> dict:
+def get_intranet_headers(mode: str = 'N') -> dict:
   """
   使用瀏覽器取得向內網發送請求的標題
-  :param type: 「N」沒有動作, 「F」取得表單內容
+  :param mode: 「N」沒有動作, 「F」取得表單內容
   :return: 內網標頭
   """
   browser = open_browser()  # 打開瀏覽器
   browser.get('http://10.124.30.21')  # 開啟首頁
 
-  if type == 'F':
+  if mode == 'F':
     # Form表單模式
     # 內網信箱送出表單後，會取得一個session儲存於cookie中，取得此cookie才能順利取得搜尋結果清單
     into_mailbox(browser)  # 進入檢舉信箱

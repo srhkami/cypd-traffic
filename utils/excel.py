@@ -28,7 +28,7 @@ def save_excel(wb, file):
 #  用 pndas 讀取Excel檔資料，輸出為字典檔
 def readonly_excel(file):
   try:
-    df = pd.read_excel(os.path.abspath(rf'.\data\{file}.xlsx'), sheet_name='Todo')
+    df = pd.read_excel(os.path.abspath(rf'.\data\{file}.xlsx'), sheet_name='ToDo')
     log().info(f'已從Excel檔「{file}」取得資料')
     log().debug(df)
     return df

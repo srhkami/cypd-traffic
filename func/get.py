@@ -2,7 +2,7 @@ from bs4 import BeautifulSoup
 from utils.webdriver import get_intranet_headers
 from static.case import Case
 import requests
-from utils.excel import load_excel, save_excel
+from utils.excel import load_excel, save_excel, readonly_excel
 from utils.log import log
 
 
@@ -59,10 +59,12 @@ def get_case_detail(url, headers) -> Case:
 
 
 def get():
-  headers = get_intranet_headers()  # 取得標頭
+  headers = get_intranet_headers(mode='F')  # 取得標頭，使用表單模式
 
   wb = load_excel('database')  # 開啟Excel
   ws = wb['ToDo']
+
+  todo_case_list = [cell.value for cell in ws['A']]  # 已存在的清單
 
   page = 1  # 清單頁數
   while True:
@@ -80,7 +82,11 @@ def get():
 
     for url in case_urls:
       case: Case = get_case_detail(f'http://10.124.30.21{url}', headers)
-      ws.append(case.values())
+      if case.number in todo_case_list:
+        # 如果案件已存在
+        log().info(f'【{case.number}】已存在資料，不予抓取')
+        continue
+      ws.append(case.values())  # 新增案件
 
     page += 1
 
