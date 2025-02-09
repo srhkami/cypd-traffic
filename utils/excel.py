@@ -2,7 +2,6 @@ import openpyxl
 import pandas as pd
 import os
 from utils.log import log
-from static.case import Case
 
 # 用 openpyxl 開啟Excel檔，用以編輯Excel
 def load_excel(file):

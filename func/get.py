@@ -27,7 +27,7 @@ def get_case_list_table(soup) -> list:
   return case_urls
 
 
-def get_case_detail(url, headers) -> object:
+def get_case_detail(url, headers) -> Case:
   """
   取得案件詳情
   :param url: 案件網址
@@ -53,7 +53,7 @@ def get_case_detail(url, headers) -> object:
     car=tds2[1].text.strip(),
     files=[a['href'] for a in tds2[4].find_all('a')]
   )  # 將案件內容轉化為物件
-  log().info(f'成功取得案件詳情 {case.number}')
+  log().info(f'【{case.number}】取得詳情成功')
 
   return case
 
@@ -79,7 +79,7 @@ def get():
       break
 
     for url in case_urls:
-      case = get_case_detail(f'http://10.124.30.21{url}', headers)
+      case: Case = get_case_detail(f'http://10.124.30.21{url}', headers)
       ws.append(case.values())
 
     page += 1

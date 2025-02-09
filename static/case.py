@@ -1,9 +1,11 @@
 import json
 
+
 class Case:
   """
   取得的案件內容轉化為物件
   """
+
   def __init__(self, case_number, url, car, place, content, sender, time_all, undertaker, files):
     self.number = case_number  # 案號
     self.car = car  # 車號
@@ -20,16 +22,18 @@ class Case:
     self.min = time_all[14:16]
     self.files = json.dumps(files)  # 將檔案清單轉為json
 
-
   def values(self) -> list:
     return [self.number, self.car, self.url, self.place, self.content, self.sender,
             self.yy, self.mm, self.dd, self.hr, self.min, self.files, self.undertaker]
 
+
 class CaseReply:
-  def __init__(self, case: dict):
-    self.number = case.get('案件編號')
-    self.car = case.get('違規車號')
-    self.no_fine = case.get('舉發單號')
-    self.article = case.get('舉發法條')
-    self.text = case.get('不舉發原因')
-    self.code = case.get('選項代碼')
+  def __init__(self, case_number, car, url, article, fine_number, reject_answer, select_code,  status_code):
+    self.number = case_number
+    self.car = car
+    self.url = url
+    self.fine_number = fine_number
+    self.article = article
+    self.reject_answer = reject_answer
+    self.select = select_code
+    self.status = status_code
