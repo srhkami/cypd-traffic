@@ -86,7 +86,9 @@ def get():
         # 如果案件已存在
         log().info(f'【{case.number}】已存在資料，不予抓取')
         continue
-      ws.append(case.values())  # 新增案件
+      add_values = case.values() + [None, None, 0, None, None, None, None, 1, 0]
+
+      ws.append(add_values)  # 新增案件
 
     page += 1
 

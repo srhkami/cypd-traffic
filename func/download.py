@@ -62,19 +62,19 @@ def download_for_case(case_number, car, links):
   for index, url in enumerate(links):
     file_name = url.split("/")[-1:][0]
     log().debug(f'{file_name} 開始下載')
+    path = f'{folder}/{file_name}'  # 檔案路徑
+    if option.qrcode:
+      make_qrcode(url, path)  # 如果選項開啟，則製作QRcode
     while True:
-      try:
-        path = f'{folder}/{file_name}'  # 檔案路徑
-        if option.qrcode:
-          make_qrcode(url, path)  # 如果選項開啟，則製作QRcode
-        progress = download_file(url, path)
-        if progress == 100:
-          log().info(f'{file_name} 下載成功({index}/{len(links)})')
-          break
-        else:
-          log().error('下載內容不完整，重新開始下載。')
-      except:
-        log().warning(f'{file_name} 下載失敗，重新開始下載。', exc_info=True)
+      # try:
+      progress = download_file(url, path)
+      if progress == 100:
+        log().info(f'{file_name} 下載成功({index}/{len(links)})')
+        break
+      else:
+        log().error('下載內容不完整，重新開始下載。')
+      # except:
+      #   log().warning(f'{file_name} 下載失敗，重新開始下載。', exc_info=True)
   log().info(f'「{case_number}」所有檔案下載完畢')
   return
 
