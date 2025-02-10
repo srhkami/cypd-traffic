@@ -135,15 +135,15 @@ def input_values(browser, case: CaseReply):
     # car = fx(browser, '/html[1]/body[1]/div[2]/div[2]/div[1]/section[1]/fieldset[1]/table[2]/tbody[1]/tr[1]/td[2]').text
 
     reply_text = ''  # 回覆文字
-    if option.get('name'):
+    if option.name:
       reply_text += f'{first_name}先生/小姐您好，'
     reply_text += '您於本縣警察局交通違規檢舉專區檢舉違規案件，經處理後茲答覆如下：'
 
-    if case.code == 100:
+    if case.select == 100:
       # 不舉發的情況
       log().debug('本案為不舉發')
       reply_text += f'\n{case.reject_answer}'  # 加入不舉發回覆
-      reply_text += option.get('text_n')  # 加入罐頭訊息
+      reply_text += option.text_n  # 加入罐頭訊息
       Select(
         fx(browser, '/html[1]/body[1]/div[2]/div[2]/div[1]/section[1]/form[1]/div[8]/select[1]')).select_by_index(
         1)  # 選擇「不舉發」
@@ -156,13 +156,13 @@ def input_values(browser, case: CaseReply):
       # 舉發的情況
       log().debug('本案為舉發')
 
-      if option.get('car'):  # 加入違規車號
+      if option.car:  # 加入違規車號
         reply_text += f'違規車號： {case.car}。\n'
 
-      if option.get('article'):  # 加入舉發法條
+      if option.article:  # 加入舉發法條
         reply_text += f'舉發法條： {case.article} 。\n'
 
-      reply_text += option.get('text_y')  # 加入罐頭訊息
+      reply_text += option.text_y  # 加入罐頭訊息
       Select(
         fx(browser, '/html[1]/body[1]/div[2]/div[2]/div[1]/section[1]/form[1]/div[8]/select[1]')).select_by_index(
         0)  # 選擇「舉發」
@@ -191,7 +191,7 @@ def reply_submit(browser, case: CaseReply, setting_ck):
   :return:
   """
   if setting_ck == 'Y':
-    ### 再次確認才決定是否回覆 ###
+    # 再次確認才決定是否回覆
     recheck = input('請檢查回覆內容，是否確定送出？(Y/n)')
     if recheck.upper() != 'Y':
       # 如果並非輸入Y，取消回覆

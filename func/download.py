@@ -6,8 +6,10 @@ import qrcode
 import json
 from contextlib import closing
 from utils.log import log
-
 from utils.excel import readonly_excel, load_excel, save_excel
+from utils.options import get_options
+
+option = get_options()
 
 
 # 主程式
@@ -21,7 +23,7 @@ def download():
 
   for row in range(2, max_row + 1):
 
-    log().info(f'執行第 {row-1} / {max_row-1} 案')
+    log().info(f'執行第 {row - 1} / {max_row - 1} 案')
 
     case_number = ws.cell(row, 1).value
     car = ws.cell(row, 2).value
@@ -36,7 +38,6 @@ def download():
 
     ws.cell(row, 22).value = 1
     save_excel(wb, 'database')
-
 
   log().info('「下載」執行完畢')
   time.sleep(0.5)
@@ -64,7 +65,8 @@ def download_for_case(case_number, car, links):
     while True:
       try:
         path = f'{folder}/{file_name}'  # 檔案路徑
-        # make_qrcode(url, path) # 製作QRcode
+        if option.qrcode:
+          make_qrcode(url, path)  # 如果選項開啟，則製作QRcode
         progress = download_file(url, path)
         if progress == 100:
           log().info(f'{file_name} 下載成功({index}/{len(links)})')
