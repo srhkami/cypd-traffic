@@ -6,7 +6,7 @@ class Case:
   取得的案件內容轉化為物件
   """
 
-  def __init__(self, case_number, url, car, place, content, sender, time_all, undertaker, files):
+  def __init__(self, case_number, url, car, place, content, sender, time_all, undertaker, files: list):
     self.number = case_number  # 案號
     self.car = car  # 車號
     self.url = url  # 案件的網址
@@ -28,7 +28,7 @@ class Case:
 
 
 class CaseReply:
-  def __init__(self, case_number, car, url, article, fine_number, reject_answer, select_code,  status_code):
+  def __init__(self, case_number, car, url, article, fine_number, reject_answer, select_code, status_code):
     self.number = case_number
     self.car = car
     self.url = url

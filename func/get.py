@@ -59,6 +59,7 @@ def get_case_detail(url, headers) -> Case:
 
 
 def get():
+
   headers = get_intranet_headers(mode='F')  # 取得標頭，使用表單模式
 
   wb = load_excel('database')  # 開啟Excel
@@ -86,7 +87,17 @@ def get():
         # 如果案件已存在
         log().info(f'【{case.number}】已存在資料，不予抓取')
         continue
-      add_values = case.values() + [None, None, 0, None, None, None, None, 1, 0]
+      add_values = case.values() + [
+        None,
+        '=IF(U2=1,"已分派",IF(U2=2,"結案","處理中"))',
+        0,
+        '=VLOOKUP($P2,舉發法條!$A$2:$D$54,3,FALSE)',
+        None,
+        None,
+        '=VLOOKUP($P2,舉發法條!$A$2:$D$54,2,FALSE)',
+        1,
+        0
+      ]  # 要新增row的內容，要加上預設的內容
 
       ws.append(add_values)  # 新增案件
 
