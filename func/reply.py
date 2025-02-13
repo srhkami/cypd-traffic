@@ -94,13 +94,12 @@ def reply_start(browser, ws, setting_re: bool, setting_ck: bool):
       log().error(f'【{case.number}】未填「舉發單號」，請修正')
       continue
 
-    reply_every(browser, case, setting_re, setting_ck)
-    ws.cell(row, 21).value = 2  # 更改處理碼為「結案」
+    reply_every(browser, ws.cell(row, 21), case, setting_re, setting_ck)
 
     save_excel(ws, 'database')
 
 
-def reply_every(browser, case: CaseReply, setting_re: bool, setting_ck: bool):
+def reply_every(browser, cell, case: CaseReply, setting_re: bool, setting_ck: bool):
   """
   回覆個別案件
   :param browser: 瀏覽器
@@ -115,7 +114,7 @@ def reply_every(browser, case: CaseReply, setting_re: bool, setting_ck: bool):
     pass  # 重新分派案件預留
 
   input_values(browser, case)
-  reply_submit(browser, case, setting_ck)
+  reply_submit(browser, cell, case, setting_ck)
 
 
 # 函式：填入回覆資訊
@@ -183,7 +182,7 @@ def input_values(browser, case: CaseReply):
     log().warning('填入回覆資訊失敗', exc_info=True)
 
 
-def reply_submit(browser, case: CaseReply, setting_ck):
+def reply_submit(browser, cell,  case: CaseReply, setting_ck):
   """
   再次確認是否觸發安全模式
   :param browser:
@@ -201,3 +200,4 @@ def reply_submit(browser, case: CaseReply, setting_ck):
 
   fx(browser, '/html[1]/body[1]/div[2]/div[2]/div[1]/section[1]/form[1]/p[1]/input[1]').click()  # 點擊回覆按鈕
   log().info(f'【{case.number}】回覆成功！')
+  cell.value = 2  # 更改處理碼為「結案」

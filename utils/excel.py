@@ -6,7 +6,10 @@ from utils.log import log
 # 用 openpyxl 開啟Excel檔，用以編輯Excel
 def load_excel(file):
   try:
-    wb = openpyxl.load_workbook(os.path.abspath(rf'.\data\{file}.xlsx'))
+    wb = openpyxl.load_workbook(
+      os.path.abspath(rf'.\data\{file}.xlsx'),
+      data_only=True  # 讀取值而不讀取公式
+    )
     log().info(f'已從Excel檔「{file}」載入資料')
     return wb
   except:
