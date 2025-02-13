@@ -16,6 +16,7 @@ from static.html import tags
 def open_browser():
   # try:
   browser = webdriver.Edge()  # 開啟瀏覽器
+  browser.get('http://10.124.30.21')  # 開啟首頁
   log().debug('瀏覽器開啟成功')
   # except:
   #   log().critical('瀏覽器開啟失敗，請檢查瀏覽器版本是否最新！', exc_info=True)

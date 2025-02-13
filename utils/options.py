@@ -6,17 +6,23 @@ from utils.log import log
 跟設定選項有關的程式碼
 """
 
+class Setting:
+  def __init__(self, text):
+    self.text = text,
+
 
 class Option:
   def __init__(self, text_y, text_n, name, car, article, re_download, qr_code):
-    self.text_y = text_y,
-    self.text_n = text_n,
-    self.name = True if name == '開啟' else False,
-    self.car = True if car == '開啟' else False,
-    self.article = True if article == '開啟' else False,
-    self.re_download = re_download,
-    self.qrcode = True if qr_code == '開啟' else False,
+    self.text_y = text_y
+    self.text_n = text_n
+    self.name = True if name == '開啟' else False
+    self.car = True if car == '開啟' else False
+    self.article = True if article == '開啟' else False
+    self.re_download = re_download
+    self.qrcode = True if qr_code == '開啟' else False
 
+  def values(self):
+    return [self.text_y, self.text_n, self.name, self.car, self.article, self.re_download, self.qrcode]
 
 def get_options() -> Option:
   """
@@ -37,7 +43,9 @@ def get_options() -> Option:
   )
 
   log().debug('成功讀取選項')
+  log().debug(option.values())
   return option
+
 
 
 def get_person():

@@ -72,23 +72,24 @@ def reply_start(browser, ws, setting_re: bool, setting_ck: bool):
     )  # 建立案件物件
 
     log().info(f'執行案件 {case.number} ( {row - 1} / {max_row - 1} )')
+    log().debug(case.values())
 
-    if case.status == 2:
+    if case.status == '2':
       # 如果該案已結案，跳過
       log().error(f'【{case.number}】已結案，不予執行')
       continue
 
-    if case.select == 0:
+    if case.select == '0':
       # 如果該案未輸入處理結果，跳過
       log().error(f'【{case.number}】未處理，不予執行')
       continue
 
-    if case.select == 100 and not case.reject_answer:
+    if case.select == '100' and not case.reject_answer:
       # 如果未舉發，但未輸入理由
       log().error(f'【{case.number}】未填「不舉發理由」，請修正')
       continue
 
-    if case.select != 0 and case.select != 100 and (not case.fine_number or not case.article):
+    if case.select != '0' and case.select != '100' and (not case.fine_number or not case.article):
       # 如果舉發但未輸入單號或法條為空
       log().error(f'【{case.number}】未填「舉發單號」，請修正')
       continue

@@ -37,3 +37,7 @@ class CaseReply:
     self.reject_answer = reject_answer
     self.select = select_code
     self.status = status_code
+
+  def values(self) -> list:
+    return [self.number, self.car, self.url, self.fine_number, self.article, self.reject_answer,
+            self.select, self.status]
