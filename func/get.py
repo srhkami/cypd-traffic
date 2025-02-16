@@ -34,7 +34,7 @@ def get_case_detail(url, headers) -> Case:
   :param headers: 標頭
   :return: 案件的物件
   """
-  res = requests.post(url, headers=headers)  # 發送請求
+  res = requests.get(url, headers=headers)  # 發送請求
   soup = BeautifulSoup(res.text, 'html.parser')  # 解析案件詳情頁面
 
   fieldset = soup.find('fieldset')  # 取得案件詳情表格

@@ -3,6 +3,8 @@ from selenium.webdriver.common.by import By
 # from undetected_chromedriver import Chrome
 from utils.log import log
 from static.html import tags
+from static.case import CaseReply
+from utils.options import Option
 
 
 # Chrome瀏覽器設定
@@ -79,3 +81,41 @@ def get_intranet_headers(mode: str = 'N') -> dict:
   log().info('成功建立標頭')
 
   return headers
+
+
+class ReplyPostData:
+  def __init__(self, case: CaseReply, option: Option):
+    self.case = case
+    self.option = option
+
+  def post_data(self) -> dict:
+
+    reply_text = '您於本縣警察局交通違規檢舉專區檢舉違規案件，經處理後茲答覆如下：\n'  # 回覆文字
+
+    if self.case.select == 100:
+      # 不舉發的情況
+      log().debug('本案為不舉發')
+      reply_text += self.case.reject_answer  # 加入不舉發回覆
+      reply_text += self.option.text_n  # 加入罐頭訊息
+
+    else:
+      # 舉發的情況
+      log().debug('本案為舉發')
+
+      if self.option.car:  # 加入違規車號
+        reply_text += f'違規車號： {self.case.car}。\n'
+
+      if self.option.article:  # 加入舉發法條
+        reply_text += f'舉發法條： {self.case.article} 。\n'
+
+      reply_text += self.option.text_y  # 加入罐頭訊息
+
+      return {
+        'Memo': reply_text,
+        'Status': '第一次回覆',
+        'IsEnd': '是',
+        'isReport': '否' if self.select == 100 else '是',
+        'MailboxTrafficCatalogRejectId': 1,
+        'MailboxTrafficArchiveTitle': self.fine,
+        'MailboxTrafficCatalogBackgroundId': self.select,
+      }

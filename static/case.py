@@ -28,16 +28,19 @@ class Case:
 
 
 class CaseReply:
-  def __init__(self, case_number, car, url, article, fine_number, reject_answer, select_code, status_code):
-    self.number = case_number
-    self.car = car
-    self.url = url
-    self.fine_number = fine_number
-    self.article = article
-    self.reject_answer = reject_answer
-    self.select = select_code
-    self.status = status_code
+  def __init__(self, case_number, car, url, sender, undertaker,  article, fine_number, reject_answer, select_code, status_code):
+    self.number = case_number  # 案件編號
+    self.car = car  # 車號
+    self.url = url.replace('Details', 'Reply')  # 案件網址，替換成回覆用的網址
+    self.sender = sender  # 檢舉人
+    self.undertaker = undertaker[-3:]  # 承辦人
+    self.fine = fine_number  # 舉發單號
+    self.article = article  # 舉發法條
+    self.reject_answer = reject_answer  # 不舉發離由
+    self.select = select_code  # 選項碼
+    self.status = status_code  # 處理碼
 
   def values(self) -> list:
-    return [self.number, self.car, self.url, self.fine_number, self.article, self.reject_answer,
+    return [self.number, self.car, self.url,self.sender, self.fine, self.article, self.reject_answer,
             self.select, self.status]
+
