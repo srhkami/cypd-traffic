@@ -7,7 +7,6 @@ import requests
 
 option = get_options()  # 讀取Excel中的設定值
 undertakers = get_undertakers()
-headers = get_intranet_headers()  # 開啟瀏覽器取得標頭
 
 
 def reply(mode):
@@ -20,6 +19,8 @@ def reply(mode):
 
   wb = load_excel('database')
   ws = wb['ToDo']
+
+  headers = get_intranet_headers()  # 開啟瀏覽器取得標頭
 
   max_row = ws.max_row  # 取得最大列數
   for row in range(2, max_row + 1):
@@ -82,18 +83,19 @@ def reply(mode):
         log().error(f'【{case.number}】取消回覆')
         continue
 
-    post_reply(ws.cell(row, 21), case, post_data)
+    post_reply(ws.cell(row, 21), case, headers, post_data)
 
     save_excel(wb, 'database')
 
   log().info('「回覆」執行完畢')
 
 
-def post_reply(status_cell, case: CaseReply, post_data):
+def post_reply(status_cell, case: CaseReply, headers, post_data):
   """
   使用post方法回覆
   :param status_cell: 狀態碼儲存格
   :param case: 案件的物件
+  :param headers: POST標頭
   :param post_data: POST資料
   :return:
   """
