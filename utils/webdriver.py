@@ -114,8 +114,8 @@ class ReplyPostData:
         'Memo': reply_text,
         'Status': '第一次回覆',
         'IsEnd': '是',
-        'isReport': '否' if self.select == 100 else '是',
+        'isReport': '否' if self.case.select == 100 else '是',
         'MailboxTrafficCatalogRejectId': 1,
-        'MailboxTrafficArchiveTitle': self.fine,
-        'MailboxTrafficCatalogBackgroundId': self.select,
+        'MailboxTrafficArchiveTitle': self.case.fine,
+        'MailboxTrafficCatalogBackgroundId': self.case.select,
       }

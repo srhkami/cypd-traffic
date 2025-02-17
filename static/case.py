@@ -33,7 +33,7 @@ class CaseReply:
     self.car = car  # 車號
     self.url = url.replace('Details', 'Reply')  # 案件網址，替換成回覆用的網址
     self.sender = sender  # 檢舉人
-    self.undertaker = undertaker[-3:]  # 承辦人
+    self.undertaker = undertaker[-3:]  # 承辦人姓名（取最後三個字）
     self.fine = fine_number  # 舉發單號
     self.article = article  # 舉發法條
     self.reject_answer = reject_answer  # 不舉發離由

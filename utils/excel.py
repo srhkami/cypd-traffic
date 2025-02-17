@@ -74,8 +74,8 @@ def dict_to_list(df):
             },
           ]
     """
-  case_list = df.T.to_dict().values()
-  return case_list
+  output_list = df.T.to_dict().values()
+  return output_list
   # obj_list = []
   # for case in case_list:
   #   obj_list.append(Case(case=case))
