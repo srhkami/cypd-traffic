@@ -16,20 +16,11 @@ from utils.options import Option
 
 
 def open_browser():
-  # try:
   browser = webdriver.Edge()  # 開啟瀏覽器
   browser.get('http://10.124.30.21')  # 開啟首頁
   log().debug('瀏覽器開啟成功')
-  # except:
-  #   log().critical('瀏覽器開啟失敗，請檢查瀏覽器版本是否最新！', exc_info=True)
-  #   input('輸入任意鍵離開……')
   browser.implicitly_wait(10)  # 預設尋找標籤等待時間
   return browser
-
-
-# 函數：取得Xpath元素
-def fx(browser, xpath):
-  return browser.find_element(By.XPATH, xpath)
 
 
 def into_mailbox(browser):
