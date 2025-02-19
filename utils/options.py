@@ -7,6 +7,7 @@ from utils.excel import dict_to_list
 跟設定選項有關的程式碼
 """
 
+
 class Setting:
   def __init__(self, text):
     self.text = text,
@@ -24,6 +25,7 @@ class Option:
 
   def values(self):
     return [self.check, self.car, self.article, self.text_y, self.text_n, self.re_download, self.qrcode]
+
 
 def get_options() -> Option:
   """
@@ -49,7 +51,7 @@ def get_options() -> Option:
 
 
 class Undertaker:
-  def __init__(self, unit,name,code):
+  def __init__(self, unit, name, code):
     self.unit = unit
     self.name = name
     self.code = code
@@ -65,11 +67,11 @@ def get_undertakers() -> dict:
   """
   excel = pd.read_excel(os.path.abspath(r'.\data\setting.xlsx'), sheet_name='承辦人設定', index_col=0)
   undertakers = {}  # 承辦人的dict
-  for i in range(0,len(excel.values)):
+  for i in range(0, len(excel.values)):
     undertakers[excel.index[i]] = Undertaker(
       unit=excel.values[i][0],
       name=excel.values[i][1],
-      code=int(excel.values[i][2],)
+      code=int(excel.values[i][2], )
     )
   log().debug('成功讀取承辦人設定')
   return undertakers
@@ -82,8 +84,13 @@ def select_undertaker() -> Undertaker:
   undertakers = get_undertakers()
   while True:
     x = int(input('請輸入分派對象：'))
-    undertaker = undertakers.get(x)
+    undertaker: Undertaker = undertakers.get(x)
     if undertaker:
-      return undertaker
+      log().info(f'已選擇 {undertaker.unit}-{undertaker.name}')
+      check = input('是否確定承辦人？(Y/n)')
+      if check.upper() == 'Y':
+        return undertaker
+      else:
+        continue
     else:
       log().error('輸入錯誤，請重新輸入！', exc_info=True)

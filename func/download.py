@@ -63,8 +63,8 @@ def download_for_case(case_number, car, links):
     file_name = url.split("/")[-1:][0]
     log().debug(f'{file_name} 開始下載')
     path = f'{folder}/{file_name}'  # 檔案路徑
-    if option.qrcode:
-      make_qrcode(url, path)  # 如果選項開啟，則製作QRcode
+    # if option.qrcode:
+    #   make_qrcode(url, path)  # 如果選項開啟，則製作QRcode
     while True:
       # try:
       progress = download_file(url, path)

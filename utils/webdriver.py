@@ -1,8 +1,5 @@
 from selenium import webdriver
-from selenium.webdriver.common.by import By
-# from undetected_chromedriver import Chrome
 from utils.log import log
-from static.html import tags
 from static.case import CaseReply
 from utils.options import Option
 
@@ -17,17 +14,17 @@ from utils.options import Option
 
 def open_browser():
   browser = webdriver.Edge()  # 開啟瀏覽器
-  browser.get('http://10.124.30.21')  # 開啟首頁
+  browser.get('http://10.124.30.21/Mailbox?cid=5')  # 開啟首頁
   log().debug('瀏覽器開啟成功')
   browser.implicitly_wait(10)  # 預設尋找標籤等待時間
   return browser
 
 
-def into_mailbox(browser):
-  # 點擊「信箱模組」
-  browser.find_element(By.XPATH, tags['信箱模組']).click()
-  # 點擊「交通違規信箱」
-  browser.find_element(By.XPATH, tags['交通違規信箱']).click()
+# def into_mailbox(browser):
+#   # 點擊「信箱模組」
+#   browser.find_element(By.XPATH, tags['信箱模組']).click()
+#   # 點擊「交通違規信箱」
+#   browser.find_element(By.XPATH, tags['交通違規信箱']).click()
 
 
 def get_intranet_headers(mode: str = 'N') -> dict:
@@ -37,13 +34,13 @@ def get_intranet_headers(mode: str = 'N') -> dict:
   :return: 內網標頭
   """
   browser = open_browser()  # 打開瀏覽器
-  browser.get('http://10.124.30.21')  # 開啟首頁
+  # browser.get('http://10.124.30.21')  # 開啟首頁
 
   if mode == 'F':
     # Form表單模式
     # 內網信箱送出表單後，會取得一個session儲存於cookie中，取得此cookie才能順利取得搜尋結果清單
-    into_mailbox(browser)  # 進入檢舉信箱
-    print('現在可以指定搜尋條件，請按下搜尋後再返回程式。')
+    # into_mailbox(browser)  # 進入檢舉信箱
+    print('現在可以指定搜尋條件，請按下『搜尋按鈕』後再返回程式。')
     input('輸入任意鍵繼續……')
 
   cookies = browser.get_cookies()  # 取得cookie，是一個清單

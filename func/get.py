@@ -2,8 +2,10 @@ from bs4 import BeautifulSoup
 from utils.webdriver import get_intranet_headers
 from static.case import Case
 import requests
-from utils.excel import load_excel, save_excel, readonly_excel
+from utils.excel import load_excel, save_excel
 from utils.log import log
+from utils.options import Undertaker
+from func.handler import handle_case
 
 
 def get_case_list_table(soup) -> list:
@@ -58,7 +60,12 @@ def get_case_detail(url, headers) -> Case:
   return case
 
 
-def get():
+def get(undertaker: Undertaker | None = None):
+  """
+  抓取案件的主程式
+  :param undertaker: 承辦人，若為 None，不分派案件
+  :return:
+  """
 
   headers = get_intranet_headers(mode='F')  # 取得標頭，使用表單模式
 
@@ -82,6 +89,16 @@ def get():
       break
 
     for url in case_urls:
+
+      if undertaker:
+        # 如果有傳入承辦人，重新分派
+        status_code = handle_case(url, undertaker, headers)
+        if status_code == 200:
+          log().info(f'分派案件成功')
+        else:
+          log().warning(f'分派案件失敗，錯誤碼：{status_code}')
+          continue
+
       case: Case = get_case_detail(f'http://10.124.30.21{url}', headers)
       if case.number in todo_case_list:
         # 如果案件已存在

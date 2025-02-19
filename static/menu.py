@@ -2,10 +2,11 @@ from static.info import ver
 from utils.log import log
 from func.get import get
 from func.reply import reply
-from utils.excel import readonly_excel
 from func.download import download
+from func.handler import handle_lot
 import time
 from static.info import changelog
+
 
 """
 給使用者查看的介面、選項
@@ -44,8 +45,8 @@ def menu_main():
     match mode:
       case '1':
         menu_station()
-      # case '2':
-      #   menu_police_station(browser)
+      case '2':
+        menu_precinct()
       case '9':
         print('\n△ 更新日誌：\n')
         for i in changelog:
@@ -106,6 +107,8 @@ def menu_precinct():
           '\n├─────────────────────────┤'
           '\n│（4）回覆案件            │'
           '\n├─────────────────────────┤'
+          '\n│（5）下載檢舉影像        │'
+          '\n├─────────────────────────┤'
           '\n│（0）返回上一頁          │'
           '\n└─────────────────────────┘')
     mode = input('請選擇功能：')
@@ -115,7 +118,8 @@ def menu_precinct():
       case '0':
         break
       case '1':
-        pass
+        menu_handler_lot()
+        handle_lot()
       case '2':
         pass
       case '3':
@@ -124,16 +128,18 @@ def menu_precinct():
       case '4':
         menu_reply()
         reply(mode)
+      case '5':
+        menu_download()  # 進入下載選單
       case _:
         log().warning('輸入錯誤，請重新輸入！')
 
 
 def menu_download():
-  print('\n◎ 本程式功能：從Excel檔取得檢舉檔案網址，自動下載檔案及生成網址QRcode'
+  print('\n◎ 本程式功能：從Excel檔取得檢舉檔案網址，自動下載檔案'
         '\n△ 注意事項：'
-        '\n● 請將包含網址的「output」檔案放入「data」資料夾中'
-        '\n● 下載及輸出得檔案會依案件存放於「data」資料夾中'
-        '\n● 下載檔案耗時較久，請耐心等候，建議不要一次下載過多案件'
+        '\n1. 執行前請確認「database」檔案已關閉，以免無法儲存資料。'
+        '\n2. 下載後的檔案會儲存在「download」資料夾中。'
+        '\n3. 執行到「ToDo」資料表中已下載過之案件時會自動跳過。'
         )
   check = input('是否確定開始下載？(Y/n)')
 
@@ -144,8 +150,7 @@ def menu_download():
 def menu_reply():
   print('\n◎ 本程式功能：從Excel檔讀取案件處理結果，逐一自動回覆'
         '\n△ 注意事項：'
-        '\n● 請將「reply」檔案編輯完成後，放入「data」資料夾內'
-        '\n● 警告！回覆時請勿點擊「回覆」按鍵，應在程式內操作！'
+        '\n1. 執行前請確認「database」檔案已關閉，以免無法儲存資料。'
         )
 
 
@@ -153,6 +158,22 @@ def menu_get():
   print('\n◎ 本程式功能：透過網頁爬蟲，抓取每個檢舉案件的資訊，並儲存成Excel檔'
         '\n△ 注意事項：'
         '\n1. 執行前請確認「database」檔案已關閉，以免無法儲存資料。'
-        '\n2. 本功能可以指定搜尋條件。'
-        '\n3. 執行到「ToDo」資料表中已抓取過之案件時會自動跳過。')
+        '\n2. 執行到「ToDo」資料表中已抓取過之案件時會自動跳過。')
+  input('輸入任意鍵繼續……')
+
+def menu_handler_lot():
+  print('\n◎ 本程式功能：搜尋關鍵字，將所有案件分派案件給指定人員。'
+        '\n△ 注意事項：'
+        '\n1. 執行前請確認「database」檔案已關閉，以免無法儲存資料。'
+        '\n2. 若要修改派出所及承辦人，請於「data」資料夾中的「setting」修改。'
+        )
+  input('輸入任意鍵繼續……')
+
+def menu_handler_one():
+  print('\n◎ 本程式功能：分派個別案件及自動抓取案件資料'
+        '\n△ 注意事項：'
+        '\n1. 執行前請確認「database」檔案已關閉，以免無法儲存資料。'
+        '\n2. 若要修改派出所及承辦人，請於「data」資料夾中的「setting」修改。'
+        '\n2. 請手動操作瀏覽器，進入「案件分派」頁面，並回到此程式輸入編號。'
+        )
   input('輸入任意鍵繼續……')
