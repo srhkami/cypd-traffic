@@ -1,11 +1,12 @@
 from static.info import ver
 from utils.log import log
-from func.get import get
+from func.get import get, handle_one
 from func.reply import reply
 from func.download import download
-from func.handler import handle_lot
+# from func.handler import handle_lot,
 import time
 from static.info import changelog
+from utils.options import select_undertaker
 
 
 """
@@ -118,10 +119,12 @@ def menu_precinct():
       case '0':
         break
       case '1':
-        menu_handler_lot()
-        handle_lot()
+        menu_handle_lot()
+        undertaker = select_undertaker()  # 選擇承辦人
+        get(undertaker=undertaker)  # 抓取兼分派
       case '2':
-        pass
+        menu_handle_one()
+        handle_one()
       case '3':
         menu_get()
         get()
@@ -161,7 +164,7 @@ def menu_get():
         '\n2. 執行到「ToDo」資料表中已抓取過之案件時會自動跳過。')
   input('輸入任意鍵繼續……')
 
-def menu_handler_lot():
+def menu_handle_lot():
   print('\n◎ 本程式功能：搜尋關鍵字，將所有案件分派案件給指定人員。'
         '\n△ 注意事項：'
         '\n1. 執行前請確認「database」檔案已關閉，以免無法儲存資料。'
@@ -169,7 +172,7 @@ def menu_handler_lot():
         )
   input('輸入任意鍵繼續……')
 
-def menu_handler_one():
+def menu_handle_one():
   print('\n◎ 本程式功能：分派個別案件及自動抓取案件資料'
         '\n△ 注意事項：'
         '\n1. 執行前請確認「database」檔案已關閉，以免無法儲存資料。'
