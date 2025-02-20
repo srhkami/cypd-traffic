@@ -48,6 +48,7 @@ def get_intranet_headers(mode: str = 'N') -> dict:
 
   if not cookies:
     log().error('cookie取得失敗')
+  log().debug(f'成功取得cookie:{cookies}')
 
   # 將cookie轉換為字串，方便加入headers中
   cookie_content = ''  # cookie的內容
@@ -66,8 +67,8 @@ def get_intranet_headers(mode: str = 'N') -> dict:
     'Sec-GPC': '1',
     'Upgrade-Insecure-Requests': '1',
   }
-
-  log().info('成功建立標頭')
+  log().info('成功取得標頭，程式將繼續執行……')
+  log().debug(headers)
 
   return headers
 
@@ -99,7 +100,7 @@ class ReplyPostData:
 
       reply_text += self.option.text_y  # 加入罐頭訊息
 
-      return {
+      reply_post_data = {
         'Memo': reply_text,
         'Status': '第一次回覆',
         'IsEnd': '是',
@@ -108,3 +109,7 @@ class ReplyPostData:
         'MailboxTrafficArchiveTitle': self.case.fine,
         'MailboxTrafficCatalogBackgroundId': self.case.select,
       }
+
+      log().debug(reply_post_data)
+
+      return reply_post_data

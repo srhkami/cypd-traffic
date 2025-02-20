@@ -74,10 +74,10 @@ def reply(mode):
       log().error(f'【{case.number}】未填「舉發單號」，請修正')
       continue
 
-    if mode != 2 and case.undertaker != undertakers.get('10').name:
+    if mode != 2 and case.undertaker != undertakers.get(10).name:
       # 如果是分局模式，偵測到承辦人不同時，自動重新分派，如果需要重新分派
       ### 預留重新分派 ###
-      status_code = handle_case(case.url, undertakers.get('10'), headers)
+      status_code = handle_case(case.url, undertakers.get(10), headers)
       if status_code == 200:
         log().info(f'重新分派成功')
       else:

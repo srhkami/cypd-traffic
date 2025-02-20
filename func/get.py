@@ -164,11 +164,14 @@ def handle_one():
     time.sleep(0.5)
     undertakers = get_undertakers()
     x = input('\n△ 請輸入分派對象(退出請輸入0)：')
-    undertaker: Undertaker = undertakers.get(x)
-    if not undertaker:
+    if x == '0':
       log().info('停止執行分派')
       browser.quit()
       break
+    undertaker: Undertaker = undertakers.get(int(x))
+    if not undertaker:
+      log().warning('承辦人輸入錯誤，請重試')
+      continue
     log().info(f'已選擇 {undertaker.unit}-{undertaker.name}')
     url = browser.current_url  # 取得當前網址
     print(f'當前網址為{url}')

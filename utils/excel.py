@@ -18,7 +18,7 @@ def load_excel(file, data_only: bool = False):
       os.path.abspath(rf'.\data\{file}.xlsx'),
       data_only=data_only  # 讀取值而不讀取公式
     )
-    log().info(f'已從Excel檔「{file}」載入資料')
+    log().info(f'已從Excel檔「{file}」載入資料，僅值模式為{data_only}')
     return wb
   except:
     log().critical('無法取得資料，請檢查excel檔名、位置是否正確！', exc_info=True)
