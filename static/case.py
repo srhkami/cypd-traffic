@@ -26,21 +26,58 @@ class Case:
     return [self.number, self.car, self.url, self.place, self.content, self.sender,
             self.yy, self.mm, self.dd, self.hr, self.min, self.files, self.undertaker]
 
+  def to_dict(self) -> dict:
+    case_dict = {
+      '案號': self.number,
+      '車號': self.car,
+      '網址': self.url,
+      '地點': self.place,
+      '內容': self.content,
+      '檢舉人': self.sender,
+      '日期': self.time_all,
+      '承辦人': self.undertaker,
+    }
+    return case_dict
+
+
+# class CaseReply:
+#   def __init__(self, case_number, car, url, sender, undertaker,  article, fine_number, reject_answer, select_code, status_code):
+#     self.number = case_number  # 案件編號
+#     self.car = car  # 車號
+#     self.url = url.replace('Details', 'Reply')  # 案件網址，替換成回覆用的網址
+#     self.sender = sender  # 檢舉人
+#     self.undertaker = undertaker[-3:]  # 承辦人姓名（取最後三個字）
+#     self.fine = fine_number  # 舉發單號
+#     self.article = article  # 舉發法條
+#     self.reject_answer = reject_answer  # 不舉發離由
+#     self.select = select_code  # 選項碼
+#     self.status = status_code  # 處理碼
+#
+#   def values(self) -> list:
+#     return [self.number, self.car, self.url,self.sender, self.fine, self.article, self.reject_answer,
+#             self.select, self.status]
 
 class CaseReply:
-  def __init__(self, case_number, car, url, sender, undertaker,  article, fine_number, reject_answer, select_code, status_code):
-    self.number = case_number  # 案件編號
-    self.car = car  # 車號
-    self.url = url.replace('Details', 'Reply')  # 案件網址，替換成回覆用的網址
-    self.sender = sender  # 檢舉人
-    self.undertaker = undertaker[-3:]  # 承辦人姓名（取最後三個字）
-    self.fine = fine_number  # 舉發單號
-    self.article = article  # 舉發法條
-    self.reject_answer = reject_answer  # 不舉發離由
-    self.select = select_code  # 選項碼
-    self.status = status_code  # 處理碼
+  def __init__(self, ws, row):
+    self.number = ws.cell(row, 1).value  # 案號
+    self.car = ws.cell(row, 2).value  # 車號
+    self.url = ws.cell(row, 3).value.replace('Details', 'Reply')  # 案件網址，替換成回覆用的網址
+    self.sender = ws.cell(row, 6).value  # 檢舉人
+    self.undertaker = ws.cell(row, 13).value[-3:]  # 承辦人姓名（取最後三個字）
+    self.input: int = ws.cell(row, 16).value  # 輸入簡碼
+    self.fine = ws.cell(row, 18).value  # 舉發單號
+    self.reject_answer = ws.cell(row, 19).value  # 不舉發理由
+    self.status = ws.cell(row, 20).value  # 處理碼
 
-  def values(self) -> list:
-    return [self.number, self.car, self.url,self.sender, self.fine, self.article, self.reject_answer,
-            self.select, self.status]
-
+  def to_dict(self) -> dict:
+    case_dict = {
+      '案號': self.number,
+      '車號': self.car,
+      '網址': self.url,
+      '檢舉人': self.sender,
+      '承辦人': self.undertaker,
+      '簡碼': self.input,
+      '不舉發理由': self.reject_answer,
+      '處理碼': self.status,
+    }
+    return case_dict

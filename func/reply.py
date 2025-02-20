@@ -19,58 +19,45 @@ def reply(station_mode: bool = True):
   log().debug('「回覆」開始執行')
 
   wb = load_excel('database')
-  ws = wb['ToDo']
-  wb_read = load_excel('database', data_only=True)
-  ws_read = wb_read['ToDo']
+  ws = wb['Todo']
 
   headers = get_intranet_headers()  # 開啟瀏覽器取得標頭
 
-  max_row = ws_read.max_row  # 取得最大列數
+  max_row = ws.max_row  # 取得最大列數
   for row in range(2, max_row + 1):
     # 逐一執行案件
 
-    case = CaseReply(
-      case_number=ws_read.cell(row, 1).value,  # 案號
-      car=ws_read.cell(row, 2).value,  # 車號
-      url=ws_read.cell(row, 3).value,  # 網址
-      sender=ws_read.cell(row, 6).value,  # 檢舉人
-      undertaker=ws_read.cell(row, 13).value,  # 承辦人
-      article=ws_read.cell(row, 17).value,  # 舉發條款
-      fine_number=ws_read.cell(row, 18).value,  # 舉發單號
-      reject_answer=ws_read.cell(row, 19).value,  # 不舉發理由
-      select_code=ws_read.cell(row, 20).value,  # 選項碼
-      status_code=ws_read.cell(row, 21).value,  # 狀態碼
-    )  # 建立案件物件
+    case = CaseReply(ws, row)  # 建立案件物件
 
     post = ReplyPostData(case, option)
     post_data = post.post_data()
 
     log().info(f'執行案件 {case.number} ( {row - 1} / {max_row - 1} )')
-    log().debug(case.values())
+    log().debug(case.to_dict())
 
     if case.status == 2:
       # 如果該案已結案，跳過
       log().error(f'【{case.number}】已結案，不予執行')
       continue
 
-    if case.select == 0:
+    if case.input == 0:
       # 如果該案未輸入處理結果，跳過
       log().error(f'【{case.number}】未處理，不予執行')
       continue
 
-    if case.status == 100 and station_mode:
+    if case.input == 100 and station_mode:
       # 如果未舉發，但是派出所模式
       log().error(f'【{case.number}】不舉發，派出所模式不予執行')
       continue
 
-    if case.select == 100 and not case.reject_answer:
+    if case.input == 100 and not case.reject_answer:
       # 如果未舉發，但未輸入理由
       log().error(f'【{case.number}】未填「不舉發理由」，請修正')
       continue
 
-    if (case.select != 0 and case.select != 100) and (not case.fine or not case.article):
+    if (case.input != 0 and case.input != 100) and not case.fine:
       # 如果舉發但未輸入單號或法條為空
-      log().error(f'【{case.number}】未填「舉發單號」或「舉發法條」，請修正')
+      log().error(f'【{case.number}】未填「舉發單號」，請修正')
       continue
 
     if not station_mode and case.undertaker != undertakers.get(10).name:
@@ -107,7 +94,7 @@ def post_reply(status_cell, case: CaseReply, headers, post_data):
   :return:
   """
   res = requests.post(url=case.url, headers=headers, data=post_data)
-  log().debug(res.json())
+  log().debug(res)
   if res.status_code == 200:
     status_cell.value = 2  # 更改處理碼為「結案」
     log().info(f'【{case.number}】回覆成功！')

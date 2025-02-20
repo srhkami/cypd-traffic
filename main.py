@@ -1,4 +1,3 @@
-
 from utils.log import log
 from static.info import ver
 from static.menu import intro, menu_main

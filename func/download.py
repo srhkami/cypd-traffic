@@ -2,7 +2,7 @@ import csv
 import os
 import time
 import requests
-import qrcode
+# import qrcode
 import json
 from contextlib import closing
 from utils.log import log
@@ -17,7 +17,7 @@ def download():
   log().debug('「下載」開始執行')
 
   wb = load_excel('database')
-  ws = wb['ToDo']
+  ws = wb['Todo']
 
   max_row = ws.max_row
 

@@ -2,7 +2,7 @@ from bs4 import BeautifulSoup
 import time
 import requests
 from utils.log import log
-from utils.options import select_undertaker, Undertaker, get_undertakers
+from utils.options import Undertaker, get_undertakers
 from utils.excel import load_excel, save_excel
 from utils.webdriver import open_browser, get_intranet_headers
 from static.case import Case
@@ -56,6 +56,7 @@ def get_case_detail(url, headers) -> Case:
     files=[a['href'] for a in tds2[4].find_all('a')]
   )  # 將案件內容轉化為物件
   log().info(f'【{case.number}】取得詳情成功')
+  log().debug(case.to_dict())
 
   return case
 
@@ -70,7 +71,7 @@ def get(undertaker: Undertaker | None = None):
   headers = get_intranet_headers(mode='F')  # 取得標頭，使用表單模式
 
   wb = load_excel('database')  # 開啟Excel
-  ws = wb['ToDo']
+  ws = wb['Todo']
 
   todo_case_list = [cell.value for cell in ws['A']]  # 已存在的清單
 
@@ -111,7 +112,6 @@ def get(undertaker: Undertaker | None = None):
         '=VLOOKUP($P2,舉發法條!$A$2:$D$54,3,FALSE)',
         None,
         None,
-        '=VLOOKUP($P2,舉發法條!$A$2:$D$54,2,FALSE)',
         1,
         0
       ]  # 要新增row的內容，要加上預設的內容
@@ -140,9 +140,10 @@ def handle_case(detail_url: str, undertaker: Undertaker, headers):
     'AuditDays': 6,
   }
   handler_url = detail_url.replace('Details', 'Handler')
+  log().debug(f'分派網址{handler_url}')
 
   res = requests.post(url=handler_url, headers=headers, data=post_data)  # 發送請求
-  log().debug(res.json())
+  log().debug(res)
 
   return res.status_code
 
@@ -164,18 +165,25 @@ def handle_one():
   while True:
     time.sleep(0.5)
     undertakers = get_undertakers()
+
     x = input('\n△ 請輸入分派對象(退出請輸入0)：')
     if x == '0':
       log().info('停止執行分派')
       browser.quit()
       break
+
     undertaker: Undertaker = undertakers.get(int(x))
     if not undertaker:
       log().warning('承辦人輸入錯誤，請重試')
       continue
+
     log().info(f'已選擇 {undertaker.unit}-{undertaker.name}')
     url = browser.current_url  # 取得當前網址
-    print(f'當前網址為{url}')
+    if 'Details' not in url or 'Handler' not in url:
+      log().warning('並未在案件網頁中，請進入案件再執行')
+      continue
+
+    # print(f'當前網址為{url}')
     handle_url = url if 'Handler' in url else url.replace('Details', 'Handler')  # 取得分派網址
     detail_url = url.replace('Handler', 'Details')  # 取得詳情網址
 
@@ -196,7 +204,6 @@ def handle_one():
       '=VLOOKUP($P2,舉發法條!$A$2:$D$54,3,FALSE)',
       None,
       None,
-      '=VLOOKUP($P2,舉發法條!$A$2:$D$54,2,FALSE)',
       1,
       0
     ]  # 要新增row的內容，要加上預設的內容
