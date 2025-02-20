@@ -25,8 +25,7 @@ class Case:
 
   def values(self) -> list:
     return [self.number, self.car, self.url, self.place, self.content, self.sender,
-            self.yy, self.mm, self.dd, self.hr, self.min, self.files, self.undertaker,self.status]
-
+            self.yy, self.mm, self.dd, self.hr, self.min, self.files, self.undertaker, self.status]
 
   def to_dict(self) -> dict:
     case_dict = {
@@ -49,6 +48,7 @@ class CaseReply:
     self.car = ws.cell(row, 2).value  # 車號
     self.detail_url = ws.cell(row, 3).value  # 案件詳情網址
     self.reply_url = self.detail_url.replace('Details', 'Reply')  # 案件回覆網址
+    self.content = ws.cell(row, 6).value  # 案件內容
     self.sender = ws.cell(row, 6).value  # 檢舉人
     self.undertaker = ws.cell(row, 13).value[-3:]  # 承辦人姓名（取最後三個字）
     self.status = ws.cell(row, 14).value  # 處理狀態
@@ -56,11 +56,11 @@ class CaseReply:
     self.fine = ws.cell(row, 18).value  # 舉發單號
     self.reject_answer = ws.cell(row, 19).value  # 不舉發理由
 
-
   def to_dict(self) -> dict:
     case_dict = {
       '案號': self.number,
       '車號': self.car,
+      '內容': self.content,
       '網址': self.detail_url,
       '檢舉人': self.sender,
       '承辦人': self.undertaker,
