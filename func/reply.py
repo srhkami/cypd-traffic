@@ -3,7 +3,9 @@ from utils.log import log
 from utils.excel import load_excel, save_excel
 from static.case import CaseReply
 from utils.webdriver import get_intranet_headers, ReplyPostData
+from func.get import handle_case
 import requests
+
 
 option = get_options()  # 讀取Excel中的設定值
 undertakers = get_undertakers()
@@ -19,24 +21,26 @@ def reply(mode):
 
   wb = load_excel('database')
   ws = wb['ToDo']
+  wb_read = load_excel('database', data_only=True)
+  ws_read = wb_read['ToDo']
 
   headers = get_intranet_headers()  # 開啟瀏覽器取得標頭
 
-  max_row = ws.max_row  # 取得最大列數
+  max_row = ws_read.max_row  # 取得最大列數
   for row in range(2, max_row + 1):
     # 逐一執行案件
 
     case = CaseReply(
-      case_number=ws.cell(row, 1).value,  # 案號
-      car=ws.cell(row, 2).value,  # 車號
-      url=ws.cell(row, 3).value,  # 網址
-      sender=ws.cell(row, 6).value,  # 檢舉人
-      undertaker=ws.cell(row, 13).value,  # 承辦人
-      article=ws.cell(row, 17).value,  # 舉發條款
-      fine_number=ws.cell(row, 18).value,  # 舉發單號
-      reject_answer=ws.cell(row, 19).value,  # 不舉發理由
-      select_code=ws.cell(row, 20).value,  # 選項碼
-      status_code=ws.cell(row, 21).value,  # 狀態碼
+      case_number=ws_read.cell(row, 1).value,  # 案號
+      car=ws_read.cell(row, 2).value,  # 車號
+      url=ws_read.cell(row, 3).value,  # 網址
+      sender=ws_read.cell(row, 6).value,  # 檢舉人
+      undertaker=ws_read.cell(row, 13).value,  # 承辦人
+      article=ws_read.cell(row, 17).value,  # 舉發條款
+      fine_number=ws_read.cell(row, 18).value,  # 舉發單號
+      reject_answer=ws_read.cell(row, 19).value,  # 不舉發理由
+      select_code=ws_read.cell(row, 20).value,  # 選項碼
+      status_code=ws_read.cell(row, 21).value,  # 狀態碼
     )  # 建立案件物件
 
     post = ReplyPostData(case, option)
@@ -70,10 +74,15 @@ def reply(mode):
       log().error(f'【{case.number}】未填「舉發單號」，請修正')
       continue
 
-    if mode != 2 and case.undertaker != undertakers.get('10'):
+    if mode != 2 and case.undertaker != undertakers.get('10').name:
       # 如果是分局模式，偵測到承辦人不同時，自動重新分派，如果需要重新分派
       ### 預留重新分派 ###
-      pass
+      status_code = handle_case(case.url, undertakers.get('10'), headers)
+      if status_code == 200:
+        log().info(f'重新分派成功')
+      else:
+        log().warning(f'重新分派失敗，跳過本案。錯誤碼：{status_code}')
+        continue
 
     if option.check:
       # 如果是安全模式，再次確認回覆文字
@@ -106,9 +115,7 @@ def post_reply(status_cell, case: CaseReply, headers, post_data):
   else:
     log().error(f'【{case.number}】使用 POST 方法回覆失敗，錯誤碼：{res.status_code}')
 
-#
-#
-#
+
 # def reply_every(browser, status_cell, case: CaseReply, setting_re: bool, setting_ck: bool):
 #   """
 #   回覆個別案件

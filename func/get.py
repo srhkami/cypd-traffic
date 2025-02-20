@@ -2,7 +2,7 @@ from bs4 import BeautifulSoup
 import time
 import requests
 from utils.log import log
-from utils.options import select_undertaker, Undertaker
+from utils.options import select_undertaker, Undertaker, get_undertakers
 from utils.excel import load_excel, save_excel
 from utils.webdriver import open_browser, get_intranet_headers
 from static.case import Case
@@ -127,10 +127,10 @@ def get(undertaker: Undertaker | None = None):
   input('輸入任意鍵繼續……')
 
 
-def handle_case(url: str, undertaker: Undertaker, headers):
+def handle_case(detail_url: str, undertaker: Undertaker, headers):
   """
   使用Post分派案件
-  :param url: 案件原網址
+  :param detail_url: 案件詳情網址
   :param undertaker: 承辦人的物件
   :param headers: POST標頭
   :return: html狀態碼
@@ -139,7 +139,7 @@ def handle_case(url: str, undertaker: Undertaker, headers):
     'HandlerId': undertaker.code,
     'AuditDays': 6,
   }
-  handler_url = url.replace('Detail', 'Handler')
+  handler_url = detail_url.replace('Detail', 'Handler')
 
   res = requests.post(url=handler_url, headers=headers, data=post_data)  # 發送請求
 
@@ -162,38 +162,42 @@ def handle_one():
 
   while True:
     time.sleep(0.5)
+    undertakers = get_undertakers()
     x = input('\n△ 請輸入分派對象(退出請輸入0)：')
-    if x == '0':
+    undertaker: Undertaker = undertakers.get(x)
+    if not undertaker:
+      log().info('停止執行分派')
+      browser.quit()
       break
+    log().info(f'已選擇 {undertaker.unit}-{undertaker.name}')
+    url = browser.current_url  # 取得當前網址
+    print(f'當前網址為{url}')
+    handle_url = url if 'Handler' in url else url.replace('Detail', 'Handler')  # 取得分派網址
+    detail_url = url.replace('Handler', 'Detail')  # 取得詳情網址
+
+    status_code = handle_case(handle_url, undertaker, headers)  # 分派
+    if status_code == 200:
+      log().info(f'分派案件成功')
     else:
-      undertaker = select_undertaker()  # 選擇承辦人
-      url = browser.current_url  # 取得當前網址
-      handle_url = url if 'Handler' in url else url.replace('Detail', 'Handler')  # 取得分派網址
-      detail_url = url.replace('Handler', 'Detail')  # 取得詳情網址
+      log().warning(f'分派案件失敗，請重試。錯誤碼：{status_code}')
+      continue
 
-      status_code = handle_case(handle_url, undertaker, headers)  # 分派
-      if status_code == 200:
-        log().info(f'分派案件成功')
-      else:
-        log().warning(f'分派案件失敗，請重試，錯誤碼：{status_code}')
-        continue
+    case: Case = get_case_detail(detail_url, headers)  # 取得案件內容
 
-      case: Case = get_case_detail(detail_url, headers)  # 取得案件內容
+    add_values = case.values() + [
+      None,
+      '=IF(U2=1,"已分派",IF(U2=2,"結案","處理中"))',
+      0,
+      '=VLOOKUP($P2,舉發法條!$A$2:$D$54,3,FALSE)',
+      None,
+      None,
+      '=VLOOKUP($P2,舉發法條!$A$2:$D$54,2,FALSE)',
+      1,
+      0
+    ]  # 要新增row的內容，要加上預設的內容
 
-      add_values = case.values() + [
-        None,
-        '=IF(U2=1,"已分派",IF(U2=2,"結案","處理中"))',
-        0,
-        '=VLOOKUP($P2,舉發法條!$A$2:$D$54,3,FALSE)',
-        None,
-        None,
-        '=VLOOKUP($P2,舉發法條!$A$2:$D$54,2,FALSE)',
-        1,
-        0
-      ]  # 要新增row的內容，要加上預設的內容
-
-      ws.append(add_values)  # 新增案件
-      save_excel(wb, 'database')  # 儲存Excel
+    ws.append(add_values)  # 新增案件
+    save_excel(wb, 'database')  # 儲存Excel
 
 
 if __name__ == '__main__':

@@ -3,12 +3,20 @@ import pandas as pd
 import os
 from utils.log import log
 
-# 用 openpyxl 開啟Excel檔，用以編輯Excel
-def load_excel(file):
+
+def load_excel(file, data_only: bool = False):
+  """
+  用 openpyxl 開啟Excel檔，用以編輯Excel
+  如有需讀取並儲存的功能時
+  應分兩個變數讀取，一讀取值，二讀取公式，最後儲存二
+  :param file: 檔案路徑
+  :param data_only: 是否只讀取值而不是讀取公式
+  :return:
+  """
   try:
     wb = openpyxl.load_workbook(
       os.path.abspath(rf'.\data\{file}.xlsx'),
-      data_only=True  # 讀取值而不讀取公式
+      data_only=data_only  # 讀取值而不讀取公式
     )
     log().info(f'已從Excel檔「{file}」載入資料')
     return wb
@@ -16,8 +24,13 @@ def load_excel(file):
     log().critical('無法取得資料，請檢查excel檔名、位置是否正確！', exc_info=True)
 
 
-# 用 openpyxl 儲存Excel
 def save_excel(wb, file):
+  """
+  用 openpyxl 儲存Excel
+  :param wb:
+  :param file:
+  :return:
+  """
   while True:
     try:
       wb.save(os.path.abspath(rf'.\data\{file}.xlsx'))
@@ -38,6 +51,7 @@ def readonly_excel(file):
   except:
     log().critical('無法取得資料，請檢查excel檔名、位置是否正確！', exc_info=True)
     print('輸入任意鍵離開……')
+
 
 def dict_to_list(df):
   """
@@ -76,10 +90,6 @@ def dict_to_list(df):
     """
   output_list = df.T.to_dict().values()
   return output_list
-  # obj_list = []
-  # for case in case_list:
-  #   obj_list.append(Case(case=case))
-  # return obj_list
 
 
 if __name__ == '__main__':

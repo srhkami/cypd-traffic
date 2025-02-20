@@ -2,6 +2,7 @@ from selenium import webdriver
 from utils.log import log
 from static.case import CaseReply
 from utils.options import Option
+from selenium.webdriver.common.by import By
 
 
 # Chrome瀏覽器設定
@@ -11,20 +12,20 @@ from utils.options import Option
 # options.add_experimental_option("prefs", {
 #   "profile.password_manager_enabled": False, "credentials_enable_service": False})
 
+def into_mailbox(browser):
+  # 點擊「信箱模組」
+  browser.find_element(By.XPATH, '/html[1]/body[1]/div[2]/div[1]/ul[1]/li[1]/div[1]/a[1]').click()
+  # 點擊「交通違規信箱」
+  browser.find_element(By.XPATH, '/html[1]/body[1]/div[2]/div[1]/ul[1]/li[1]/div[1]/ul[1]/li[4]/a[1]').click()
+
 
 def open_browser():
   browser = webdriver.Edge()  # 開啟瀏覽器
-  browser.get('http://10.124.30.21/Mailbox?cid=5')  # 開啟首頁
+  browser.get('http://10.124.30.21')  # 開啟首頁
   log().debug('瀏覽器開啟成功')
   browser.implicitly_wait(10)  # 預設尋找標籤等待時間
+  into_mailbox(browser)  # 進入交通違規信箱
   return browser
-
-
-# def into_mailbox(browser):
-#   # 點擊「信箱模組」
-#   browser.find_element(By.XPATH, tags['信箱模組']).click()
-#   # 點擊「交通違規信箱」
-#   browser.find_element(By.XPATH, tags['交通違規信箱']).click()
 
 
 def get_intranet_headers(mode: str = 'N') -> dict:
