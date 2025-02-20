@@ -70,7 +70,7 @@ def reply(station_mode: bool = True):
 
     if (case.select != 0 and case.select != 100) and (not case.fine or not case.article):
       # 如果舉發但未輸入單號或法條為空
-      log().error(f'【{case.number}】未填「舉發單號」，請修正')
+      log().error(f'【{case.number}】未填「舉發單號」或「舉發法條」，請修正')
       continue
 
     if not station_mode and case.undertaker != undertakers.get(10).name:
@@ -107,7 +107,7 @@ def post_reply(status_cell, case: CaseReply, headers, post_data):
   :return:
   """
   res = requests.post(url=case.url, headers=headers, data=post_data)
-  log().debug(res)
+  log().debug(res.json())
   if res.status_code == 200:
     status_cell.value = 2  # 更改處理碼為「結案」
     log().info(f'【{case.number}】回覆成功！')

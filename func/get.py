@@ -139,10 +139,10 @@ def handle_case(detail_url: str, undertaker: Undertaker, headers):
     'HandlerId': undertaker.code,
     'AuditDays': 6,
   }
-  handler_url = detail_url.replace('Detail', 'Handler')
+  handler_url = detail_url.replace('Details', 'Handler')
 
   res = requests.post(url=handler_url, headers=headers, data=post_data)  # 發送請求
-  log().debug(res)
+  log().debug(res.json())
 
   return res.status_code
 
@@ -176,12 +176,13 @@ def handle_one():
     log().info(f'已選擇 {undertaker.unit}-{undertaker.name}')
     url = browser.current_url  # 取得當前網址
     print(f'當前網址為{url}')
-    handle_url = url if 'Handler' in url else url.replace('Detail', 'Handler')  # 取得分派網址
-    detail_url = url.replace('Handler', 'Detail')  # 取得詳情網址
+    handle_url = url if 'Handler' in url else url.replace('Details', 'Handler')  # 取得分派網址
+    detail_url = url.replace('Handler', 'Details')  # 取得詳情網址
 
     status_code = handle_case(handle_url, undertaker, headers)  # 分派
     if status_code == 200:
       log().info(f'分派案件成功')
+      browser.back()
     else:
       log().warning(f'分派案件失敗，請重試。錯誤碼：{status_code}')
       continue
