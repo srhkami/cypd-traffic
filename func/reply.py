@@ -76,7 +76,7 @@ def reply(station_mode: bool = True):
         log().error(f'【{case.number}】取消回覆')
         continue
 
-    post_reply(ws.cell(row, 21), case, headers, post_data)
+    post_reply(ws.cell(row, 14), case, headers, post_data)
 
     save_excel(wb, 'database')
 

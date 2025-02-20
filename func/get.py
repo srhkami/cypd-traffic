@@ -2,7 +2,7 @@ from bs4 import BeautifulSoup
 import time
 import requests
 from utils.log import log
-from utils.options import Undertaker, get_undertakers
+from utils.options import Undertaker, get_undertakers, select_undertaker
 from utils.excel import load_excel, save_excel
 from utils.webdriver import open_browser, get_intranet_headers
 from static.case import Case
@@ -62,14 +62,18 @@ def get_case_detail(detail_url, headers) -> Case:
   return case
 
 
-def get(undertaker: Undertaker | None = None):
+def get(handle_mode: bool = False):
   """
   抓取案件的主程式
-  :param undertaker: 承辦人，若為 None，不分派案件
+  :param handle_mode: 分派模式，若為True，則會選擇承辦人進行分派
   :return:
   """
 
   headers = get_intranet_headers(mode='F')  # 取得標頭，使用表單模式
+
+  if handle_mode:
+    # 如果開始分派模式
+    undertaker = select_undertaker()  # 選擇承辦人
 
   wb = load_excel('database')  # 開啟Excel
   ws = wb['Todo']
@@ -92,8 +96,8 @@ def get(undertaker: Undertaker | None = None):
 
     for url in case_urls:
 
-      if undertaker:
-        # 如果有傳入承辦人，分派案件
+      if handle_mode:
+        # 如果為分派模式，分派並抓取案件
         case: Case | None = handle_case(f'http://10.124.30.21{url}', undertaker, headers)
         if not case:
           # 分派失敗，不儲存該筆

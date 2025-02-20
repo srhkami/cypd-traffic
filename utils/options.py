@@ -1,7 +1,6 @@
 import pandas as pd
 import os
 from utils.log import log
-from utils.excel import dict_to_list
 
 """
 跟設定選項有關的程式碼
@@ -9,17 +8,16 @@ from utils.excel import dict_to_list
 
 
 class Option:
-  def __init__(self, check, car, article, text_y, text_n, re_download, qr_code):
+  def __init__(self, check, car, article, text_y, text_n, download_limit):
     self.check = True if check == '開啟' else False
     self.car = True if car == '開啟' else False
     self.article = True if article == '開啟' else False
     self.text_y = text_y
     self.text_n = text_n
-    self.re_download = re_download
-    self.qrcode = True if qr_code == '開啟' else False
+    self.download_limit = int(download_limit)
 
   def values(self):
-    return [self.check, self.car, self.article, self.text_y, self.text_n, self.re_download, self.qrcode]
+    return [self.check, self.car, self.article, self.text_y, self.text_n, self.download_limit]
 
 
 def get_options() -> Option:
@@ -36,8 +34,7 @@ def get_options() -> Option:
     article=excel.at['顯示法條', col_name],
     text_y=excel.at['舉發回覆', col_name],
     text_n=excel.at['不舉發回覆', col_name],
-    re_download=excel.at['重下載次數', col_name],
-    qr_code=excel.at['生成QR', col_name],
+    download_limit=excel.at['重下載次數', col_name],
   )
 
   log().debug('成功讀取選項')
