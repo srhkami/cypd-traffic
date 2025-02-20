@@ -48,7 +48,7 @@ class CaseReply:
     self.car = ws.cell(row, 2).value  # 車號
     self.detail_url = ws.cell(row, 3).value  # 案件詳情網址
     self.reply_url = self.detail_url.replace('Details', 'Reply')  # 案件回覆網址
-    self.content = ws.cell(row, 6).value  # 案件內容
+    self.content = ws.cell(row, 5).value  # 案件內容
     self.sender = ws.cell(row, 6).value  # 檢舉人
     self.undertaker = ws.cell(row, 13).value[-3:]  # 承辦人姓名（取最後三個字）
     self.status = ws.cell(row, 14).value  # 處理狀態
