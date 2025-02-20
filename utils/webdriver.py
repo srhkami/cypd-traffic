@@ -1,9 +1,10 @@
 from selenium import webdriver
 from utils.log import log
 from static.case import CaseReply
-from utils.options import Option
+from utils.options import Option, Article, get_articles
 from selenium.webdriver.common.by import By
 
+articles = get_articles()
 
 # Chrome瀏覽器設定
 # options = webdriver.EdgeOptions()
@@ -82,7 +83,7 @@ class ReplyPostData:
 
     reply_text = '您於本縣警察局交通違規檢舉專區檢舉違規案件，經處理後茲答覆如下：\n'  # 回覆文字
 
-    if self.case.select == 100:
+    if self.case.input == 100:
       # 不舉發的情況
       log().debug('本案為不舉發')
       reply_text += self.case.reject_answer  # 加入不舉發回覆
@@ -96,7 +97,7 @@ class ReplyPostData:
         reply_text += f'違規車號： {self.case.car}。\n'
 
       if self.option.article:  # 加入舉發法條
-        reply_text += f'舉發法條： {self.case.article} 。\n'
+        reply_text += f'舉發法條： {articles[self.case.input].text} 。\n'
 
       reply_text += self.option.text_y  # 加入罐頭訊息
 
@@ -104,10 +105,10 @@ class ReplyPostData:
         'Memo': reply_text,
         'Status': '第一次回覆',
         'IsEnd': '是',
-        'isReport': '否' if self.case.select == 100 else '是',
+        'isReport': '否' if self.case.input == 100 else '是',
         'MailboxTrafficCatalogRejectId': 1,
         'MailboxTrafficArchiveTitle': self.case.fine,
-        'MailboxTrafficCatalogBackgroundId': self.case.select,
+        'MailboxTrafficCatalogBackgroundId': articles[self.case.input].code,
       }
 
       log().debug(reply_post_data)

@@ -8,11 +8,6 @@ from utils.excel import dict_to_list
 """
 
 
-class Setting:
-  def __init__(self, text):
-    self.text = text,
-
-
 class Option:
   def __init__(self, check, car, article, text_y, text_n, re_download, qr_code):
     self.check = True if check == '開啟' else False
@@ -94,3 +89,28 @@ def select_undertaker() -> Undertaker:
         continue
     else:
       log().error('輸入錯誤，請重新輸入！', exc_info=True)
+
+
+class Article:
+  def __init__(self, code, text):
+    self.code = code
+    self.text = text
+
+
+def get_articles() -> dict:
+  """
+  讀取法條對照表，並返回一個依簡碼查詢法條的字典
+  :return:
+  {
+    30102: Article物件
+  }
+  """
+  excel = pd.read_excel(os.path.abspath(r'.\data\database.xlsx'), sheet_name='Article', index_col=0)
+  articles = {}  # 承辦人的dict
+  for i in range(0, len(excel.values)):
+    articles[excel.index[i]] = Article(
+      code=excel.values[i][0],
+      text=excel.values[i][1],
+    )
+  log().debug('成功讀取法條對應表')
+  return articles
