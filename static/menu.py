@@ -89,7 +89,7 @@ def menu_station():
         get()
       case '2':
         menu_reply()
-        reply(mode)
+        reply(True)
       case '3':
         menu_download()  # 進入下載選單
       case _:
@@ -130,7 +130,7 @@ def menu_precinct():
         get()
       case '4':
         menu_reply()
-        reply(mode)
+        reply(False)
       case '5':
         menu_download()  # 進入下載選單
       case _:

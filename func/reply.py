@@ -6,15 +6,14 @@ from utils.webdriver import get_intranet_headers, ReplyPostData
 from func.get import handle_case
 import requests
 
-
 option = get_options()  # 讀取Excel中的設定值
 undertakers = get_undertakers()
 
 
-def reply(mode):
+def reply(station_mode: bool = True):
   """
     執行回覆的主程式
-    :param mode: 是否為派出所模式
+    :param station_mode: 是否為派出所模式
     :return: 無
     """
   log().debug('「回覆」開始執行')
@@ -59,7 +58,7 @@ def reply(mode):
       log().error(f'【{case.number}】未處理，不予執行')
       continue
 
-    if case.status == 100 and mode == 2:
+    if case.status == 100 and station_mode:
       # 如果未舉發，但是派出所模式
       log().error(f'【{case.number}】不舉發，派出所模式不予執行')
       continue
@@ -74,9 +73,8 @@ def reply(mode):
       log().error(f'【{case.number}】未填「舉發單號」，請修正')
       continue
 
-    if mode != 2 and case.undertaker != undertakers.get(10).name:
-      # 如果是分局模式，偵測到承辦人不同時，自動重新分派，如果需要重新分派
-      ### 預留重新分派 ###
+    if not station_mode and case.undertaker != undertakers.get(10).name:
+      # 如果是分局模式，偵測到承辦人不同時，自動重新分派
       status_code = handle_case(case.url, undertakers.get(10), headers)
       if status_code == 200:
         log().info(f'重新分派成功')
@@ -109,12 +107,12 @@ def post_reply(status_cell, case: CaseReply, headers, post_data):
   :return:
   """
   res = requests.post(url=case.url, headers=headers, data=post_data)
+  log().debug(res)
   if res.status_code == 200:
     status_cell.value = 2  # 更改處理碼為「結案」
     log().info(f'【{case.number}】回覆成功！')
   else:
     log().error(f'【{case.number}】使用 POST 方法回覆失敗，錯誤碼：{res.status_code}')
-
 
 # def reply_every(browser, status_cell, case: CaseReply, setting_re: bool, setting_ck: bool):
 #   """

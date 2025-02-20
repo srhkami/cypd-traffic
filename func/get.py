@@ -92,7 +92,7 @@ def get(undertaker: Undertaker | None = None):
 
       if undertaker:
         # 如果有傳入承辦人，重新分派
-        status_code = handle_case(url, undertaker, headers)
+        status_code = handle_case(f'http://10.124.30.21{url}', undertaker, headers)
         if status_code == 200:
           log().info(f'分派案件成功')
         else:
@@ -142,6 +142,7 @@ def handle_case(detail_url: str, undertaker: Undertaker, headers):
   handler_url = detail_url.replace('Detail', 'Handler')
 
   res = requests.post(url=handler_url, headers=headers, data=post_data)  # 發送請求
+  log().debug(res)
 
   return res.status_code
 
