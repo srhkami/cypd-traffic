@@ -3,7 +3,7 @@ from utils.log import log
 from utils.excel import load_excel, save_excel
 from static.case import CaseReply
 from utils.webdriver import get_intranet_headers, ReplyPostData
-from func.get import handle_case
+from func.get import handle_case, get_case_detail
 import requests
 
 option = get_options()  # 讀取Excel中的設定值
@@ -29,13 +29,12 @@ def reply(station_mode: bool = True):
 
     case = CaseReply(ws, row)  # 建立案件物件
 
-    post = ReplyPostData(case, option)
-    post_data = post.post_data()
+    post_data = ReplyPostData(case, option).post_data()  # 取得Post的資料
 
     log().info(f'執行案件 {case.number} ( {row - 1} / {max_row - 1} )')
     log().debug(case.to_dict())
 
-    if case.status == 2:
+    if case.status == '已結案':
       # 如果該案已結案，跳過
       log().error(f'【{case.number}】已結案，不予執行')
       continue
@@ -62,7 +61,7 @@ def reply(station_mode: bool = True):
 
     if not station_mode and case.undertaker != undertakers.get(10).name:
       # 如果是分局模式，偵測到承辦人不同時，自動重新分派
-      status_code = handle_case(case.url, undertakers.get(10), headers)
+      status_code = handle_case(case.detail_url, undertakers.get(10), headers)
       if status_code == 200:
         log().info(f'重新分派成功')
       else:
@@ -93,114 +92,12 @@ def post_reply(status_cell, case: CaseReply, headers, post_data):
   :param post_data: POST資料
   :return:
   """
-  res = requests.post(url=case.url, headers=headers, data=post_data)
-  log().debug(res)
-  if res.status_code == 200:
-    status_cell.value = 2  # 更改處理碼為「結案」
-    log().info(f'【{case.number}】回覆成功！')
-  else:
-    log().error(f'【{case.number}】使用 POST 方法回覆失敗，錯誤碼：{res.status_code}')
+  requests.post(url=case.reply_url, headers=headers, data=post_data)
 
-# def reply_every(browser, status_cell, case: CaseReply, setting_re: bool, setting_ck: bool):
-#   """
-#   回覆個別案件
-#   :param browser: 瀏覽器
-#   :param case: 案件詳情物件
-#   :param setting_re: 是否重新分派
-#   :param setting_ck: 是否再次確認
-#   :return:
-#   """
-#   browser.get(case.url)
-#
-#   if setting_re:
-#     pass  # 重新分派案件預留
-#
-#   input_values(browser, case)
-#   reply_submit(browser, status_cell, case, setting_ck)
-#
-#
-# # 函式：填入回覆資訊
-# def input_values(browser, case: CaseReply):
-#   """
-#   填入回覆資訊
-#   :param browser:
-#   :param case: 案件的物件
-#   :return:
-#   """
-#   try:
-#     # name = fx(browser,
-#     #           '/html[1]/body[1]/div[2]/div[2]/div[1]/section[1]/fieldset[1]/table[1]/tbody[1]/tr[4]/td[1]').text
-#     # first_name = name[0]  # 取得姓氏
-#
-#     # no_text = str(case.number)
-#     # date = f'{int(no_text[0:4]) - 1911}年{no_text[4:6]}月{no_text[6:8]}日'
-#     # car = fx(browser, '/html[1]/body[1]/div[2]/div[2]/div[1]/section[1]/fieldset[1]/table[2]/tbody[1]/tr[1]/td[2]').text
-#
-#     reply_text = ''  # 回覆文字
-#     if option.name:
-#       reply_text += f'{case.sender[0]}先生/小姐您好，'
-#     reply_text += '您於本縣警察局交通違規檢舉專區檢舉違規案件，經處理後茲答覆如下：'
-#
-#     if case.select == 100:
-#       # 不舉發的情況
-#       log().debug('本案為不舉發')
-#       reply_text += f'\n{case.reject_answer}'  # 加入不舉發回覆
-#       reply_text += option.text_n  # 加入罐頭訊息
-#       Select(
-#         fx(browser, '/html[1]/body[1]/div[2]/div[2]/div[1]/section[1]/form[1]/div[8]/select[1]')).select_by_index(
-#         1)  # 選擇「不舉發」
-#       Select(
-#         fx(browser,
-#            '/html[1]/body[1]/div[2]/div[2]/div[1]/section[1]/form[1]/div[9]/div[2]/select[1]')).select_by_index(
-#         12)  # 選擇不舉發理由：「其他」
-#
-#     else:
-#       # 舉發的情況
-#       log().debug('本案為舉發')
-#
-#       if option.car:  # 加入違規車號
-#         reply_text += f'違規車號： {case.car}。\n'
-#
-#       if option.article:  # 加入舉發法條
-#         reply_text += f'舉發法條： {case.article} 。\n'
-#
-#       reply_text += option.text_y  # 加入罐頭訊息
-#       Select(
-#         fx(browser, '/html[1]/body[1]/div[2]/div[2]/div[1]/section[1]/form[1]/div[8]/select[1]')).select_by_index(
-#         0)  # 選擇「舉發」
-#       fx(browser, '/html[1]/body[1]/div[2]/div[2]/div[1]/section[1]/form[1]/div[10]/div[2]/input[1]').send_keys(
-#         case.fine)  # 貼上舉發單號
-#       Select(
-#         fx(browser, '/html[1]/body[1]/div[2]/div[2]/div[1]/section[1]/form[1]/div[10]/div[2]/'
-#                     'select[1]')).select_by_value(str(case.select))  # 選擇舉發項目」
-#
-#     fx(browser, '/html[1]/body[1]/div[2]/div[2]/div[1]/section[1]/form[1]/div[2]/textarea[1]').send_keys(
-#       reply_text)  # 貼上回覆訊息
-#     log().debug('回覆訊息填入完成')
-#     Select(fx(browser, '/html[1]/body[1]/div[2]/div[2]/div[1]/section[1]/form[1]/div[6]/select[1]')).select_by_index(
-#       0)  # 選擇「結案」
-#
-#   except:
-#     log().warning('填入回覆資訊失敗', exc_info=True)
-#
-#
-# def reply_submit(browser, status_cell, case: CaseReply, setting_ck):
-#   """
-#   再次確認是否觸發安全模式
-#   :param browser:
-#   :param status_cell: 處理碼的儲存格
-#   :param case:
-#   :param setting_ck: 是否再次確認
-#   :return:
-#   """
-#   if setting_ck == 'Y':
-#     # 再次確認才決定是否回覆
-#     recheck = input('請檢查回覆內容，是否確定送出？(Y/n)')
-#     if recheck.upper() != 'Y':
-#       # 如果並非輸入Y，取消回覆
-#       log().info(f'{case.number} 回覆已取消')
-#       return
-#
-#   fx(browser, '/html[1]/body[1]/div[2]/div[2]/div[1]/section[1]/form[1]/p[1]/input[1]').click()  # 點擊回覆按鈕
-#   log().info(f'【{case.number}】回覆成功！')
-#   status_cell.value = 2  # 更改處理碼為「結案」
+  case = get_case_detail(detail_url=case.detail_url, headers=headers)  # 再次抓取案件詳情
+
+  if case.status == '已結案':
+    status_cell.value = case.status  # 更改處理碼為「已結案」
+    log().info(f'【{case.number}】回覆成功')
+  else:
+    log().error(f'【{case.number}】回覆失敗')

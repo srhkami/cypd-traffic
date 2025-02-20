@@ -28,7 +28,7 @@ def download():
     case_number = ws.cell(row, 1).value
     car = ws.cell(row, 2).value
     file_links = json.loads(ws.cell(row, 12).value)
-    dl_status = ws.cell(row, 22).value
+    dl_status = ws.cell(row, 20).value
 
     if dl_status == 1:
       log().info(f'案件「{case_number}」案已下載，略過')
@@ -36,7 +36,7 @@ def download():
 
     download_for_case(case_number, car, file_links)
 
-    ws.cell(row, 22).value = 1
+    ws.cell(row, 20).value = 1  # 更改下載碼
     save_excel(wb, 'database')
 
   log().info('「下載」執行完畢')
@@ -97,6 +97,6 @@ def download_file(url, path):
   return progress
 
 
-def make_qrcode(url, path):
-  img = qrcode.make(url)
-  img.save(f'{path}.png')
+# def make_qrcode(url, path):
+#   img = qrcode.make(url)
+#   img.save(f'{path}.png')

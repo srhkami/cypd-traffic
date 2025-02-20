@@ -4,14 +4,7 @@ from static.case import CaseReply
 from utils.options import Option, Article, get_articles
 from selenium.webdriver.common.by import By
 
-articles = get_articles()
-
-# Chrome瀏覽器設定
-# options = webdriver.EdgeOptions()
-# options.add_experimental_option("excludeSwitches", ["enable-automation"])
-# options.add_experimental_option('useAutomationExtension', False)
-# options.add_experimental_option("prefs", {
-#   "profile.password_manager_enabled": False, "credentials_enable_service": False})
+articles = get_articles()  # 取得法條對應表
 
 def into_mailbox(browser):
   # 點擊「信箱模組」
@@ -36,7 +29,6 @@ def get_intranet_headers(mode: str = 'N') -> dict:
   :return: 內網標頭
   """
   browser = open_browser()  # 打開瀏覽器
-  # browser.get('http://10.124.30.21')  # 開啟首頁
 
   if mode == 'F':
     # Form表單模式

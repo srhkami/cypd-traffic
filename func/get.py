@@ -29,14 +29,14 @@ def get_case_list_table(soup) -> list:
   return case_urls
 
 
-def get_case_detail(url, headers) -> Case:
+def get_case_detail(detail_url, headers) -> Case:
   """
   取得案件詳情
-  :param url: 案件網址
+  :param detail_url: 案件網址
   :param headers: 標頭
   :return: 案件的物件
   """
-  res = requests.get(url, headers=headers)  # 發送請求
+  res = requests.get(detail_url, headers=headers)  # 發送請求
   soup = BeautifulSoup(res.text, 'html.parser')  # 解析案件詳情頁面
 
   fieldset = soup.find('fieldset')  # 取得案件詳情表格
@@ -46,11 +46,12 @@ def get_case_detail(url, headers) -> Case:
 
   case = Case(
     case_number=tds[0].text.strip(),
-    url=url,
+    url=detail_url,
     place=tds[1].text.strip(),
     content=tds[2].text.strip(),
     sender=tds[3].text.strip(),
     undertaker=tds[12].text.strip(),
+    status=tds[16].text.strip(),
     time_all=tds2[0].text.strip(),
     car=tds2[1].text.strip(),
     files=[a['href'] for a in tds2[4].find_all('a')]
@@ -92,27 +93,27 @@ def get(undertaker: Undertaker | None = None):
     for url in case_urls:
 
       if undertaker:
-        # 如果有傳入承辦人，重新分派
-        status_code = handle_case(f'http://10.124.30.21{url}', undertaker, headers)
-        if status_code == 200:
-          log().info(f'分派案件成功')
-        else:
-          log().warning(f'分派案件失敗，錯誤碼：{status_code}')
+        # 如果有傳入承辦人，分派案件
+        case: Case | None = handle_case(f'http://10.124.30.21{url}', undertaker, headers)
+        if not case:
+          # 分派失敗，不儲存該筆
           continue
 
-      case: Case = get_case_detail(f'http://10.124.30.21{url}', headers)
+      else:
+        # 如果沒有傳入承辦人，正常抓取
+        case: Case = get_case_detail(f'http://10.124.30.21{url}', headers)
+
       if case.number in todo_case_list:
         # 如果案件已存在
         log().info(f'【{case.number}】已存在資料，不予抓取')
         continue
+
       add_values = case.values() + [
         None,
-        '=IF(U2=1,"已分派",IF(U2=2,"結案","處理中"))',
         0,
         '=VLOOKUP($P2,舉發法條!$A$2:$D$54,3,FALSE)',
         None,
         None,
-        1,
         0
       ]  # 要新增row的內容，要加上預設的內容
 
@@ -127,25 +128,30 @@ def get(undertaker: Undertaker | None = None):
   input('輸入任意鍵繼續……')
 
 
-def handle_case(detail_url: str, undertaker: Undertaker, headers):
+def handle_case(detail_url: str, undertaker: Undertaker, headers) -> Case | None:
   """
   使用Post分派案件
   :param detail_url: 案件詳情網址
   :param undertaker: 承辦人的物件
   :param headers: POST標頭
-  :return: html狀態碼
+  :return: 案件或空
   """
   post_data = {
     'HandlerId': undertaker.code,
     'AuditDays': 6,
   }
   handler_url = detail_url.replace('Details', 'Handler')
-  log().debug(f'分派網址{handler_url}')
-
+  # log().debug(f'分派網址{handler_url}')
   res = requests.post(url=handler_url, headers=headers, data=post_data)  # 發送請求
   log().debug(res)
-
-  return res.status_code
+  case: Case = get_case_detail(detail_url, headers)  # 取得案件詳情
+  if case.undertaker[-3:] == undertaker.name:
+    # 如果承辦人已更改，返回案件
+    return case
+  else:
+    # 如果承辦人未更改，返回 None
+    log().error(f'【{case.number}】分派失敗')
+    return None
 
 
 def handle_one():
@@ -183,28 +189,18 @@ def handle_one():
       log().warning('並未在案件網頁中，請進入案件再執行')
       continue
 
-    # print(f'當前網址為{url}')
-    handle_url = url if 'Handler' in url else url.replace('Details', 'Handler')  # 取得分派網址
-    detail_url = url.replace('Handler', 'Details')  # 取得詳情網址
+    detail_url = url if 'Details' in url else url.replace('Handler', 'Details')  # 取得詳情網址
 
-    status_code = handle_case(handle_url, undertaker, headers)  # 分派
-    if status_code == 200:
-      log().info(f'分派案件成功')
-      browser.back()
-    else:
-      log().warning(f'分派案件失敗，請重試。錯誤碼：{status_code}')
+    case: Case | None = handle_case(detail_url, undertaker, headers)  # 分派並抓取案件
+    if not case:
       continue
-
-    case: Case = get_case_detail(detail_url, headers)  # 取得案件內容
 
     add_values = case.values() + [
       None,
-      '=IF(U2=1,"已分派",IF(U2=2,"結案","處理中"))',
       0,
       '=VLOOKUP($P2,舉發法條!$A$2:$D$54,3,FALSE)',
       None,
       None,
-      1,
       0
     ]  # 要新增row的內容，要加上預設的內容
 
