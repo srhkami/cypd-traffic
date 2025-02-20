@@ -1,13 +1,15 @@
-from utils.options import get_options, get_undertakers
+from utils.options import get_options, get_undertakers, get_articles
 from utils.log import log
 from utils.excel import load_excel, save_excel
 from static.case import CaseReply
 from utils.webdriver import get_intranet_headers, ReplyPostData
 from func.get import handle_case, get_case_detail
 import requests
+import pprint
 
 option = get_options()  # 讀取Excel中的設定值
 undertakers = get_undertakers()
+articles = get_articles()
 
 
 def reply(station_mode: bool = True):
@@ -54,6 +56,11 @@ def reply(station_mode: bool = True):
       log().error(f'【{case.number}】未填「不舉發理由」，請修正')
       continue
 
+    if case.input not in articles.keys():
+      # 條款簡碼錯誤
+      log().error(f'【{case.number}】條款簡碼填寫錯誤，請修正')
+      continue
+
     if (case.input != 0 and case.input != 100) and not case.fine:
       # 如果舉發但未輸入單號或法條為空
       log().error(f'【{case.number}】未填「舉發單號」，請修正')
@@ -70,6 +77,9 @@ def reply(station_mode: bool = True):
 
     if option.check:
       # 如果是安全模式，再次確認回覆文字
+      print('───────案件再次確認────────')
+      pprint.pprint(case.to_dict())
+      print('\n')
       print(post_data.get('Memo'))
       check = input('△ 是否確定回覆？（Y/n）')
       if check.upper() != 'Y':
