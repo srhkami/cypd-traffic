@@ -28,7 +28,7 @@ exe = EXE(
     a.zipfiles,
     a.datas,
     [],
-    name='app',
+    name='app_2',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,

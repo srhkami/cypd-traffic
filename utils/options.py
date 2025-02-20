@@ -19,6 +19,17 @@ class Option:
   def values(self):
     return [self.check, self.car, self.article, self.text_y, self.text_n, self.download_limit]
 
+  def to_dict(self):
+    option_dict = {
+      '安全模式': self.check,
+      '顯示車號': self.car,
+      '顯示法條': self.article,
+      '舉發回覆': self.text_y,
+      '不舉發回覆': self.text_n,
+      '下載上限': self.download_limit,
+    }
+    return option_dict
+
 
 def get_options() -> Option:
   """

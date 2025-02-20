@@ -189,7 +189,8 @@ def handle_one():
 
     log().info(f'已選擇 {undertaker.unit}-{undertaker.name}')
     url = browser.current_url  # 取得當前網址
-    if 'Details' not in url or 'Handler' not in url:
+    log().debug(f'當前網址：{url}')
+    if 'Details' not in url and 'Handler' not in url:
       log().warning('並未在案件網頁中，請進入案件再執行')
       continue
 
