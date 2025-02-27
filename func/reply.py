@@ -31,7 +31,8 @@ def reply(station_mode: bool = True):
 
     case = CaseReply(ws, row)  # 建立案件物件
 
-    post_data = ReplyPostData(case, option).post_data()  # 取得Post的資料
+    reply_post = ReplyPostData(case, option)
+    post_data = reply_post.post_data()  # 取得Post的資料
 
     log().info(f'執行案件 {case.number} ( {row - 1} / {max_row - 1} )')
     log().debug(case.to_dict())
@@ -77,11 +78,11 @@ def reply(station_mode: bool = True):
 
     if option.check:
       # 如果是安全模式，再次確認回覆文字
-      print('───────案件再次確認────────')
+      print('\n───────案件再次確認────────')
       pprint.pprint(case.to_dict())
       print('\n')
       print(post_data.get('Memo'))
-      check = input('△ 是否確定回覆？（Y/n）')
+      check = input('\n△ 是否確定回覆？（Y/n）')
       if check.upper() != 'Y':
         log().error(f'【{case.number}】取消回覆')
         continue
