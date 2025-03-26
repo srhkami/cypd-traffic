@@ -14,7 +14,7 @@ def into_mailbox(browser):
 
 
 def open_browser():
-  browser = webdriver.Edge()  # 開啟瀏覽器
+  browser = webdriver.Chrome()  # 開啟瀏覽器
   browser.get('http://10.124.30.21')  # 開啟首頁
   log().debug('瀏覽器開啟成功')
   browser.implicitly_wait(10)  # 預設尋找標籤等待時間
