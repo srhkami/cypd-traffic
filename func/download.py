@@ -30,7 +30,9 @@ def download():
     dl_status = ws.cell(row, 20).value
 
     if dl_status == 1:
-      log().info(f'案件「{case_number}」案已下載，略過')
+      # 如果已經下載，跳過，且不記錄Log
+      # log().info(f'案件「{case_number}」案已下載，略過')
+      print(f'案件「{case_number}」案已下載，略過')
       continue
 
     download_for_case(case_number, car, file_links)

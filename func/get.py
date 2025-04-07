@@ -8,10 +8,11 @@ from utils.webdriver import open_browser, get_intranet_headers
 from static.case import Case
 
 
-def get_case_list_table(soup) -> list:
+def get_case_list_table(soup, case_urls) -> list:
   """
   取得案件清單
   :param soup:
+  :param case_urls: 詳情網址的列表，由外部傳入
   :return: 案件詳情網址的列表
   """
   table = soup.find(name='table', attrs={'class': 'table'})  # 取得案件清單主表格
@@ -21,7 +22,6 @@ def get_case_list_table(soup) -> list:
     # 如果沒有資料了，回覆空清單
     return []
 
-  case_urls = []  # 建立空清單：案件詳情網址的列表
   for tr in trs:
     tds = tr.find_all('td')
     case_urls.append(tds[1].a['href'])  # 將案件詳情的連結加入
@@ -81,6 +81,8 @@ def get(handle_mode: bool = False):
   todo_case_list = [cell.value for cell in ws['A']]  # 已存在的清單
 
   page = 1  # 清單頁數
+  case_urls = []
+
   while True:
     list_url = f'http://10.124.30.21/Mailbox?cid=5&page={page}'  # 清單的網址
 
@@ -88,42 +90,42 @@ def get(handle_mode: bool = False):
     soup = BeautifulSoup(res.text, 'html.parser')  # 解析清單頁面
     log().info(f'讀取清單頁面 {list_url}')
 
-    case_urls = get_case_list_table(soup)
+    case_urls = get_case_list_table(soup, case_urls)
 
     if not case_urls:
       log().info('沒有找到下一頁，執行結束')
       break
 
-    for url in case_urls:
+    page += 1
 
-      if handle_mode:
-        # 如果為分派模式，分派並抓取案件
-        case: Case | None = handle_case(f'http://10.124.30.21{url}', undertaker, headers)
-        if not case:
-          # 分派失敗，不儲存該筆
-          continue
+  for url in case_urls:
 
-      else:
-        # 如果沒有傳入承辦人，正常抓取
-        case: Case = get_case_detail(f'http://10.124.30.21{url}', headers)
-
-      if case.number in todo_case_list:
-        # 如果案件已存在
-        log().info(f'【{case.number}】已存在資料，不予抓取')
+    if handle_mode:
+      # 如果為分派模式，分派並抓取案件
+      case: Case | None = handle_case(f'http://10.124.30.21{url}', undertaker, headers)
+      if not case:
+        # 分派失敗，不儲存該筆
         continue
 
-      add_values = case.values() + [
-        None,
-        0,
-        '=VLOOKUP($P2,舉發法條!$A$2:$D$54,3,FALSE)',
-        None,
-        None,
-        0
-      ]  # 要新增row的內容，要加上預設的內容
+    else:
+      # 如果沒有傳入承辦人，正常抓取
+      case: Case = get_case_detail(f'http://10.124.30.21{url}', headers)
 
-      ws.append(add_values)  # 新增案件
+    if case.number in todo_case_list:
+      # 如果案件已存在
+      log().info(f'【{case.number}】已存在資料，不予抓取')
+      continue
 
-    page += 1
+    add_values = case.values() + [
+      None,
+      0,
+      '=VLOOKUP($P2,舉發法條!$A$2:$D$54,3,FALSE)',
+      None,
+      None,
+      0
+    ]  # 要新增row的內容，要加上預設的內容
+
+    ws.append(add_values)  # 新增案件
 
   save_excel(wb, 'database')
 
@@ -211,6 +213,8 @@ def handle_one():
 
     ws.append(add_values)  # 新增案件
     save_excel(wb, 'database')  # 儲存Excel
+
+    browser.back()  # 返回上一頁
 
 
 if __name__ == '__main__':
