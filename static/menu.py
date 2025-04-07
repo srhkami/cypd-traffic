@@ -3,10 +3,10 @@ from utils.log import log
 from func.get import get, handle_one
 from func.reply import reply
 from func.download import download
-# from func.handler import handle_lot,
 import time
 from static.info import changelog
 from utils.options import select_undertaker
+from pprint import pprint
 
 """
 給使用者查看的介面、選項
@@ -46,8 +46,7 @@ def menu_main():
         menu_precinct()
       case '9':
         print('\n△ 更新日誌：\n')
-        for i in changelog:
-          print(i)
+        pprint(changelog)
         input('輸入任意鍵繼續……')
       # case '123':
       #   # 貼上網址會有雙引號，故先移除

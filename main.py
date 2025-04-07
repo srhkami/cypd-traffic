@@ -11,5 +11,3 @@ if __name__ == '__main__':
   input('輸入任意鍵繼續……')
 
   menu_main()
-
-
