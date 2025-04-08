@@ -6,6 +6,7 @@ from utils.options import Undertaker, get_undertakers, select_undertaker
 from utils.excel import load_excel, save_excel
 from utils.webdriver import open_browser, get_intranet_headers
 from static.case import Case
+from selenium.webdriver.common.by import By
 
 
 def get_case_list_table(soup) -> list:
@@ -82,7 +83,7 @@ def get(handle_mode: bool = False):
   todo_case_list = [cell.value for cell in ws['A']]  # 已存在的清單
 
   page = 1  # 清單頁數
-  case_usrl_list = []  #　建立一個總案件網址的清單
+  case_usrl_list = []  # 建立一個總案件網址的清單
 
   while True:
     list_url = f'http://10.124.30.21/Mailbox?cid=5&page={page}'  # 清單的網址
@@ -96,7 +97,7 @@ def get(handle_mode: bool = False):
     if not case_urls:
       log().info('沒有找到下一頁，執行結束')
       break
-    case_usrl_list.append(case_urls)  # 將此頁找到的項目加入總清單
+    case_usrl_list += case_urls  # 將此頁找到的項目加入總清單
 
     page += 1
 
@@ -149,12 +150,12 @@ def handle_case(detail_url: str, undertaker: Undertaker, headers) -> Case | None
     'AuditDays': 6,
   }
   handler_url = detail_url.replace('Details', 'Handler')  # 替換為分派的網址
-  # log().debug(f'分派網址{handler_url}')
   res = requests.post(url=handler_url, headers=headers, data=post_data)  # 發送請求
   log().debug(res)
   case: Case = get_case_detail(detail_url, headers)  # 取得案件詳情
   if case.undertaker[-3:] == undertaker.name:
     # 如果承辦人已更改，返回案件
+    log().info(f'【{case.number}】分派成功')
     return case
   else:
     # 如果承辦人未更改，返回 None
@@ -200,7 +201,9 @@ def handle_one():
 
     detail_url = url if 'Details' in url else url.replace('Handler', 'Details')  # 取得詳情網址
 
-    case: Case | None = handle_case(detail_url, undertaker, headers)  # 分派並抓取案件
+    # case: Case | None = handle_case(detail_url, undertaker, headers)  # 分派並抓取案件
+    case: Case = get_case_detail(f'http://10.124.30.21{detail_url}', headers)  # 抓取案件詳情
+
     if not case:
       continue
 
@@ -213,10 +216,21 @@ def handle_one():
       0
     ]  # 要新增row的內容，要加上預設的內容
 
-    ws.append(add_values)  # 新增案件
-    save_excel(wb, 'database')  # 儲存Excel
+    # 使用舊式的表單輸入方式
+    try:
+      form = '/html[1]/body[1]/div[2]/div[2]/div[1]/section[1]/form[1]'  # 表單位置
+      browser.execute_script("arguments[0].setAttribute(arguments[1],arguments[2])",
+                             browser.find_element(By.XPATH, f'{form}/div[2]/input[1]'
+                                                  ), 'type', 'text')  # 解開隱藏input
+      browser.find_element(By.XPATH, f'{form}/div[2]/input[1]').clear()  # 清除input文字
+      browser.find_element(By.XPATH, f'{form}/div[2]/input[1]').send_keys(undertaker['代號'])  # 輸入input文字
+      browser.find_element(By.XPATH, f'{form}/p[1]/input[1]').click()  # 分派送出
 
-    browser.back()  # 返回上一頁
+      ws.append(add_values)  # 新增案件
+      save_excel(wb, 'database')  # 儲存Excel
+
+    except:
+      log().warning(f'【 {case.number}】分派案件填入失敗', exc_info=True)
 
 
 if __name__ == '__main__':
