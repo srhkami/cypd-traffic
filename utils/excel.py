@@ -36,9 +36,9 @@ def save_excel(wb, file):
       wb.save(os.path.abspath(rf'.\data\{file}.xlsx'))
       log().info(f'儲存Excel檔成功，檔名為「{file}」')
       break
-    except:
+    except PermissionError:
       log().error(f'儲存Excel檔失敗，請檢查「{file}」檔案是否已關閉！', exc_info=True)
-      print('輸入任意鍵重試……')
+    input('請關閉檔案，輸入任意鍵重新儲存……')
 
 
 #  用 pndas 讀取Excel檔資料，輸出為字典檔
@@ -50,7 +50,6 @@ def readonly_excel(file):
     return df
   except:
     log().critical('無法取得資料，請檢查excel檔名、位置是否正確！', exc_info=True)
-    print('輸入任意鍵離開……')
 
 
 def dict_to_list(df):
