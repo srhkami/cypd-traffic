@@ -29,86 +29,82 @@ def reply(station_mode: bool = True):
   for row in range(2, max_row + 1):
     # 逐一執行案件
 
-    case = CaseReply(ws, row)  # 建立案件物件
+    reply_case = CaseReply(ws, row)  # 建立案件物件
 
-    reply_post = ReplyPostData(case, option)
+    reply_post = ReplyPostData(reply_case, option)
     post_data = reply_post.post_data()  # 取得Post的資料
 
-    log().info(f'執行案件 {case.number} ( {row - 1} / {max_row - 1} )')
-    log().debug(case.to_dict())
+    log().info(f'執行案件 {reply_case.number} ( {row - 1} / {max_row - 1} )')
+    log().debug(reply_case.to_dict())
 
-    if case.status == '已結案':
+    if reply_case.status == '已結案':
       # 如果該案已結案，跳過
-      log().error(f'【{case.number}】已結案，不予執行')
+      log().error(f'【{reply_case.number}】已結案，不予執行')
       continue
 
-    if case.input == 0:
+    if reply_case.input == 0:
       # 如果該案未輸入處理結果，跳過
-      log().error(f'【{case.number}】未處理，不予執行')
+      log().error(f'【{reply_case.number}】未處理，不予執行')
       continue
 
-    if case.input == 100 and station_mode:
+    if reply_case.input == 100 and station_mode:
       # 如果未舉發，但是派出所模式
-      log().error(f'【{case.number}】不舉發，派出所模式不予執行')
+      log().error(f'【{reply_case.number}】不舉發，派出所模式不予執行')
       continue
 
-    if case.input == 100 and not case.reject_answer:
+    if reply_case.input == 100 and not case.reject_answer:
       # 如果未舉發，但未輸入理由
-      log().error(f'【{case.number}】未填「不舉發理由」，請修正')
+      log().error(f'【{reply_case.number}】未填「不舉發理由」，請修正')
       continue
 
-    if case.input not in articles.keys():
+    if reply_case.input not in articles.keys():
       # 條款簡碼錯誤
-      log().error(f'【{case.number}】條款簡碼填寫錯誤，請修正')
+      log().error(f'【{reply_case.number}】條款簡碼填寫錯誤，請修正')
       continue
 
-    if (case.input != 0 and case.input != 100) and not case.fine:
+    if (reply_case.input != 0 and reply_case.input != 100) and not reply_case.fine:
       # 如果舉發但未輸入單號或法條為空
-      log().error(f'【{case.number}】未填「舉發單號」，請修正')
+      log().error(f'【{reply_case.number}】未填「舉發單號」，請修正')
       continue
 
-    if not station_mode and case.undertaker != undertakers.get(10).name:
+    if not station_mode and reply_case.undertaker != undertakers.get(10).name:
       # 如果是分局模式，偵測到承辦人不同時，自動重新分派
-      status_code = handle_case(case.detail_url, undertakers.get(10), headers)
-      if status_code == 200:
-        log().info(f'重新分派成功')
-      else:
-        log().warning(f'重新分派失敗，跳過本案。錯誤碼：{status_code}')
-        continue
+      handle_case(reply_case.detail_url, undertakers.get(10), headers)
 
     if option.check:
       # 如果是安全模式，再次確認回覆文字
       print('\n───────案件再次確認────────')
-      pprint.pprint(case.to_dict())
+      pprint.pprint(reply_case.to_dict())
       print('\n')
       print(post_data.get('Memo'))
       check = input('\n△ 是否確定回覆？（Y/n）')
       if check.upper() != 'Y':
-        log().error(f'【{case.number}】取消回覆')
+        log().error(f'【{reply_case.number}】取消回覆')
         continue
 
-    post_reply(ws.cell(row, 14), case, headers, post_data)
+    post_reply(ws.cell(row, 13), ws.cell(row, 14), reply_case, headers, post_data)
 
     save_excel(wb, 'database')
 
   log().info('「回覆」執行完畢')
 
 
-def post_reply(status_cell, case: CaseReply, headers, post_data):
+def post_reply(undertaker_cell, status_cell, reply_case: CaseReply, headers, post_data):
   """
   使用post方法回覆
   :param status_cell: 狀態碼儲存格
-  :param case: 案件的物件
+  :param reply_case: 案件的物件
   :param headers: POST標頭
   :param post_data: POST資料
   :return:
   """
-  requests.post(url=case.reply_url, headers=headers, data=post_data)
+  requests.post(url=reply_case.reply_url, headers=headers, data=post_data)
 
-  case = get_case_detail(detail_url=case.detail_url, headers=headers)  # 再次抓取案件詳情
+  new_case = get_case_detail(detail_url=reply_case.detail_url, headers=headers)  # 再次抓取案件詳情
 
-  if case.status == '已結案':
-    status_cell.value = case.status  # 更改處理碼為「已結案」
-    log().info(f'【{case.number}】回覆成功')
+  if new_case.status == '已結案':
+    status_cell.value = new_case.status  # 更改處理碼為「已結案」
+    undertaker_cell.value = new_case.undertaker
+    log().info(f'【{new_case.number}】回覆成功')
   else:
-    log().error(f'【{case.number}】回覆失敗')
+    log().error(f'【{new_case.number}】回覆失敗')

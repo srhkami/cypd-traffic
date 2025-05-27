@@ -1,9 +1,9 @@
 import json
 
 
-class Case:
+class CaseWeb:
   """
-  取得的案件內容轉化為物件
+  從網站上取得的案件內容，轉化為物件
   """
 
   def __init__(self, case_number, url, car, place, content, sender, time_all, undertaker, status, files: list):
@@ -43,6 +43,10 @@ class Case:
 
 
 class CaseReply:
+  """
+  從Excel中取得的案件資料，轉化為物件
+  """
+
   def __init__(self, ws, row):
     self.number = ws.cell(row, 1).value  # 案號
     self.car = ws.cell(row, 2).value  # 車號

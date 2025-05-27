@@ -1,3 +1,5 @@
+from pprint import pprint
+
 from bs4 import BeautifulSoup
 import time
 import requests
@@ -5,8 +7,7 @@ from utils.log import log
 from utils.options import Undertaker, get_undertakers, select_undertaker
 from utils.excel import load_excel, save_excel
 from utils.webdriver import open_browser, get_intranet_headers
-from static.case import Case
-from selenium.webdriver.common.by import By
+from static.case import CaseWeb
 
 
 def get_case_list_table(soup) -> list:
@@ -31,7 +32,7 @@ def get_case_list_table(soup) -> list:
   return case_urls
 
 
-def get_case_detail(detail_url, headers) -> Case:
+def get_case_detail(detail_url, headers) -> CaseWeb:
   """
   取得案件詳情
   :param detail_url: 案件網址
@@ -46,7 +47,7 @@ def get_case_detail(detail_url, headers) -> Case:
   tds = tables[0].find_all('td')  # 取得上方的表格內容
   tds2 = tables[1].find_all('td')  # 取得下方的表格內容
 
-  case = Case(
+  case = CaseWeb(
     case_number=tds[0].text.strip(),
     url=detail_url,
     place=tds[1].text.strip(),
@@ -106,14 +107,14 @@ def get(handle_mode: bool = False):
 
     if handle_mode:
       # 如果為分派模式，分派並抓取案件
-      case: Case | None = handle_case(f'http://10.124.30.21{url}', undertaker, headers)
+      case: CaseWeb | None = handle_case(f'http://10.124.30.21{url}', undertaker, headers)
       if not case:
         # 分派失敗，不儲存該筆
         continue
 
     else:
       # 如果沒有傳入承辦人，正常抓取
-      case: Case = get_case_detail(f'http://10.124.30.21{url}', headers)
+      case: CaseWeb = get_case_detail(f'http://10.124.30.21{url}', headers)
 
     if case.number in todo_case_list:
       # 如果案件已存在
@@ -139,7 +140,7 @@ def get(handle_mode: bool = False):
   input('輸入任意鍵繼續……')
 
 
-def handle_case(detail_url: str, undertaker: Undertaker, headers) -> Case | None:
+def handle_case(detail_url: str, undertaker: Undertaker, headers) -> CaseWeb | None:
   """
   使用Post分派案件
   :param detail_url: 案件詳情網址
@@ -154,7 +155,7 @@ def handle_case(detail_url: str, undertaker: Undertaker, headers) -> Case | None
   handler_url = detail_url.replace('Details', 'Handler')  # 替換為分派的網址
   res = requests.post(url=handler_url, headers=headers, data=post_data)  # 發送請求
   log().debug(res)
-  case: Case = get_case_detail(detail_url, headers)  # 取得案件詳情
+  case: CaseWeb = get_case_detail(detail_url, headers)  # 取得案件詳情
   if case.undertaker[-3:] == undertaker.name:
     # 如果承辦人已更改，返回案件
     log().info(f'【{case.number}】分派成功')
@@ -204,7 +205,7 @@ def handle_one():
 
     detail_url = url if 'Details' in url else url.replace('Handler', 'Details')  # 取得詳情網址
 
-    case: Case | None = handle_case(detail_url, undertaker, headers)  # 分派並抓取案件
+    case: CaseWeb | None = handle_case(detail_url, undertaker, headers)  # 分派並抓取案件
     # case: Case = get_case_detail(detail_url, headers)  # 抓取案件詳情
 
     if not case:
@@ -224,22 +225,6 @@ def handle_one():
 
     browser.back()
     browser.refresh()
-
-    # 使用舊式的表單輸入方式
-    # try:
-    #   form = '/html[1]/body[1]/div[2]/div[2]/div[1]/section[1]/form[1]'  # 表單位置
-    #   browser.execute_script("arguments[0].setAttribute(arguments[1],arguments[2])",
-    #                          browser.find_element(By.XPATH, f'{form}/div[2]/input[1]'
-    #                                               ), 'type', 'text')  # 解開隱藏input
-    #   browser.find_element(By.XPATH, f'{form}/div[2]/input[1]').clear()  # 清除input文字
-    #   browser.find_element(By.XPATH, f'{form}/div[2]/input[1]').send_keys(undertaker['代號'])  # 輸入input文字
-    #   browser.find_element(By.XPATH, f'{form}/p[1]/input[1]').click()  # 分派送出
-    #
-    #   ws.append(add_values)  # 新增案件
-    #   save_excel(wb, 'database')  # 儲存Excel
-    #
-    # except:
-    #   log().warning(f'【 {case.number}】分派案件填入失敗', exc_info=True)
 
 
 if __name__ == '__main__':
