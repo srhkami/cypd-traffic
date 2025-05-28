@@ -52,7 +52,7 @@ def reply(station_mode: bool = True):
       log().error(f'【{reply_case.number}】不舉發，派出所模式不予執行')
       continue
 
-    if reply_case.input == 100 and not case.reject_answer:
+    if reply_case.input == 100 and not reply_case.reject_answer:
       # 如果未舉發，但未輸入理由
       log().error(f'【{reply_case.number}】未填「不舉發理由」，請修正')
       continue
@@ -92,6 +92,7 @@ def reply(station_mode: bool = True):
 def post_reply(undertaker_cell, status_cell, reply_case: CaseReply, headers, post_data):
   """
   使用post方法回覆
+  :param undertaker_cell: 承辦人儲存格
   :param status_cell: 狀態碼儲存格
   :param reply_case: 案件的物件
   :param headers: POST標頭

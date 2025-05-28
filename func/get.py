@@ -85,7 +85,7 @@ def get(handle_mode: bool = False):
   todo_case_list = [cell.value for cell in ws['A']]  # 已存在的清單
 
   page = 1  # 清單頁數
-  case_usrl_list = []  # 建立一個總案件網址的清單
+  case_url_list = []  # 建立一個總案件網址的清單
 
   while True:
     list_url = f'http://10.124.30.21/Mailbox?cid=5&page={page}'  # 清單的網址
@@ -99,11 +99,11 @@ def get(handle_mode: bool = False):
     if not case_urls:
       log().info('沒有找到下一頁，執行結束')
       break
-    case_usrl_list += case_urls  # 將此頁找到的項目加入總清單
+    case_url_list += case_urls  # 將此頁找到的項目加入總清單
 
     page += 1
 
-  for url in case_usrl_list:
+  for url in case_url_list:
 
     if handle_mode:
       # 如果為分派模式，分派並抓取案件

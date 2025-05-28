@@ -1,7 +1,6 @@
 import os
 import time
 import requests
-# import qrcode
 import json
 from contextlib import closing
 from utils.log import log
@@ -58,7 +57,7 @@ def download_for_case(case_number, car, links):
   folder = rf'.\download\{case_number}_{car}'
   try:
     os.mkdir(folder)
-  except(FileExistsError):
+  except FileExistsError:
     pass
   for index, url in enumerate(links):
     file_name = url.split("/")[-1:][0]
@@ -66,18 +65,18 @@ def download_for_case(case_number, car, links):
     path = f'{folder}/{file_name}'  # 檔案路徑
     # if option.qrcode:
     #   make_qrcode(url, path)  # 如果選項開啟，則製作QRcode
-    donwload_times = 0  # 嘗試下載次數
+    download_times = 0  # 嘗試下載次數
     while True:
       # try:
       progress = download_file(url, path)
       if progress == 100:
         log().info(f'{file_name} 下載成功({index}/{len(links)})')
         break
-      if option.download_limit == donwload_times:
+      if option.download_limit == download_times:
         log().error(f'{file_name} 下載嘗試次數已達上限，跳過本檔案，請手動下載。')
         break
       else:
-        donwload_times += 1
+        download_times += 1
         log().error('下載內容不完整，重新開始下載。')
       # except:
       #   log().warning(f'{file_name} 下載失敗，重新開始下載。', exc_info=True)
