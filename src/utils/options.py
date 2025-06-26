@@ -1,6 +1,6 @@
 import pandas as pd
 import os
-from utils.log import log
+from src.utils.log import log
 
 """
 跟設定選項有關的程式碼
@@ -8,6 +8,9 @@ from utils.log import log
 
 
 class Option:
+  """
+  程式的設定物件
+  """
   def __init__(self, check, car, article, text_y, text_n, download_limit):
     self.check = True if check == '開啟' else False
     self.car = True if car == '開啟' else False

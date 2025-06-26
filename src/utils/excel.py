@@ -1,7 +1,7 @@
 import openpyxl
 import pandas as pd
 import os
-from utils.log import log
+from src.utils.log import log
 
 
 def load_excel(file, data_only: bool = False):

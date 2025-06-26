@@ -1,11 +1,11 @@
-from static.info import ver
-from utils.log import log
-from func.get import get, handle_one
+from src.static.info import ver
+from src.utils.log import log
+from func.get import get
 from func.reply import reply
 from func.download import download
 import time
-from static.info import changelog
-from utils.options import select_undertaker
+from src.static.info import changelog
+from src.utils.options import select_undertaker
 from pprint import pprint
 
 """
@@ -95,7 +95,7 @@ def menu_precinct():
     print('\n --------------------'
           '\n  ◎ 分局作業 '
           '\n（1）分派案件 (批量模式) '
-          '\n（2）分派案件 (個別模式) '
+          '\n（2）分派案件 (個別模式) --暫時停用 '
           '\n（3）抓取案件資料'
           '\n（4）回覆案件'
           '\n（5）下載檢舉影像'
@@ -111,9 +111,9 @@ def menu_precinct():
       case '1':
         menu_handle_lot()
         get(handle_mode=True)  # 抓取兼分派
-      case '2':
-        menu_handle_one()
-        handle_one()
+      # case '2':
+      #   menu_handle_one()
+      #   handle_one()
       case '3':
         menu_get()
         get()

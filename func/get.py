@@ -3,11 +3,11 @@ from pprint import pprint
 from bs4 import BeautifulSoup
 import time
 import requests
-from utils.log import log
-from utils.options import Undertaker, get_undertakers, select_undertaker
-from utils.excel import load_excel, save_excel
-from utils.webdriver import open_browser, get_intranet_headers
-from static.case import CaseWeb
+from src.utils.log import log
+from src.utils.options import Undertaker, get_undertakers, select_undertaker
+from src.utils.excel import load_excel, save_excel
+from src.web.webdriver import get_intranet_headers
+from src.obj.case import CaseWeb
 
 
 def get_case_list_table(soup) -> list:
@@ -16,7 +16,7 @@ def get_case_list_table(soup) -> list:
   :param soup:
   :return: 案件詳情網址的列表
   """
-  table = soup.find(name='table', attrs={'class': 'table'})  # 取得案件清單主表格
+  table = soup.find(name='table', attrs={'obj': 'table'})  # 取得案件清單主表格
   trs = table.find_all('tr')[1:]  # 取得表格中tbody的所有tr
 
   if not trs:
@@ -43,7 +43,7 @@ def get_case_detail(detail_url, headers) -> CaseWeb:
   soup = BeautifulSoup(res.text, 'html.parser')  # 解析案件詳情頁面
 
   fieldset = soup.find('fieldset')  # 取得案件詳情表格
-  tables = fieldset.find_all('table', attrs={'class': 'table-h'})  # 取得案件詳情表格
+  tables = fieldset.find_all('table', attrs={'obj': 'table-h'})  # 取得案件詳情表格
   tds = tables[0].find_all('td')  # 取得上方的表格內容
   tds2 = tables[1].find_all('td')  # 取得下方的表格內容
 
@@ -166,65 +166,65 @@ def handle_case(detail_url: str, undertaker: Undertaker, headers) -> CaseWeb | N
     return None
 
 
-def handle_one():
-  """
-  分派單一案件
-  :return:
-  """
-
-  wb = load_excel('database')  # 開啟Excel
-  ws = wb['Todo']
-  max_row = ws.max_row  # 取得最大Row數
-
-  headers = get_intranet_headers()  # 取得標題
-
-  browser = open_browser()  # 開啟瀏覽器
-  browser.implicitly_wait(0.5)
-
-  while True:
-    time.sleep(0.5)
-    undertakers = get_undertakers()
-
-    x = input('\n△ 請輸入分派對象(退出請輸入0)：')
-    if x == '0':
-      log().info('停止執行分派')
-      browser.quit()
-      break
-
-    undertaker: Undertaker = undertakers.get(int(x))
-    if not undertaker:
-      log().warning('承辦人輸入錯誤，請重試')
-      continue
-
-    log().info(f'已選擇 {undertaker.unit}-{undertaker.name}')
-    url = browser.current_url  # 取得當前網址
-    log().debug(f'當前網址：{url}')
-    if 'Details' not in url and 'Handler' not in url:
-      log().warning('並未在案件網頁中，請進入案件再執行')
-      continue
-
-    detail_url = url if 'Details' in url else url.replace('Handler', 'Details')  # 取得詳情網址
-
-    case: CaseWeb | None = handle_case(detail_url, undertaker, headers)  # 分派並抓取案件
-    # case: Case = get_case_detail(detail_url, headers)  # 抓取案件詳情
-
-    if not case:
-      continue
-
-    add_values = case.values() + [
-      None,
-      0,
-      f'=VLOOKUP($P{max_row + 1},Article!$A$2:$D$54,3,FALSE)',
-      None,
-      None,
-      0
-    ]  # 要新增row的內容，要加上預設的內容
-
-    ws.append(add_values)  # 新增案件
-    save_excel(wb, 'database')  # 儲存Excel
-
-    browser.back()
-    browser.refresh()
+# def handle_one():
+#   """
+#   分派單一案件
+#   :return:
+#   """
+#
+#   wb = load_excel('database')  # 開啟Excel
+#   ws = wb['Todo']
+#   max_row = ws.max_row  # 取得最大Row數
+#
+#   headers = get_intranet_headers()  # 取得標題
+#
+#   browser = open_browser()  # 開啟瀏覽器
+#   browser.implicitly_wait(0.5)
+#
+#   while True:
+#     time.sleep(0.5)
+#     undertakers = get_undertakers()
+#
+#     x = input('\n△ 請輸入分派對象(退出請輸入0)：')
+#     if x == '0':
+#       log().info('停止執行分派')
+#       browser.quit()
+#       break
+#
+#     undertaker: Undertaker = undertakers.get(int(x))
+#     if not undertaker:
+#       log().warning('承辦人輸入錯誤，請重試')
+#       continue
+#
+#     log().info(f'已選擇 {undertaker.unit}-{undertaker.name}')
+#     url = browser.current_url  # 取得當前網址
+#     log().debug(f'當前網址：{url}')
+#     if 'Details' not in url and 'Handler' not in url:
+#       log().warning('並未在案件網頁中，請進入案件再執行')
+#       continue
+#
+#     detail_url = url if 'Details' in url else url.replace('Handler', 'Details')  # 取得詳情網址
+#
+#     case: CaseWeb | None = handle_case(detail_url, undertaker, headers)  # 分派並抓取案件
+#     # case: Case = get_case_detail(detail_url, headers)  # 抓取案件詳情
+#
+#     if not case:
+#       continue
+#
+#     add_values = case.values() + [
+#       None,
+#       0,
+#       f'=VLOOKUP($P{max_row + 1},Article!$A$2:$D$54,3,FALSE)',
+#       None,
+#       None,
+#       0
+#     ]  # 要新增row的內容，要加上預設的內容
+#
+#     ws.append(add_values)  # 新增案件
+#     save_excel(wb, 'database')  # 儲存Excel
+#
+#     browser.back()
+#     browser.refresh()
 
 
 if __name__ == '__main__':

@@ -1,6 +1,6 @@
-from utils.log import log
-from static.info import ver
-from static.menu import intro, menu_main
+from src.utils.log import log
+from src.static.info import ver
+from src.static.menu import intro, menu_main
 
 # 主程式
 if __name__ == '__main__':

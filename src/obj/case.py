@@ -4,6 +4,7 @@ import json
 class CaseWeb:
   """
   從網站上取得的案件內容，轉化為物件
+  用以轉化為資料庫
   """
 
   def __init__(self, case_number, url, car, place, content, sender, time_all, undertaker, status, files: list):
@@ -45,6 +46,7 @@ class CaseWeb:
 class CaseReply:
   """
   從Excel中取得的案件資料，轉化為物件
+  用以回覆檔案
   """
 
   def __init__(self, ws, row):
