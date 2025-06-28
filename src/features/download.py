@@ -6,9 +6,9 @@ import json
 from contextlib import closing
 from src.utils.log import log
 from src.utils.excel import load_excel, save_excel
-from src.utils.options import get_options
+from src.object.options import get_option
 
-option = get_options()
+option = get_option()
 
 
 # 主程式
@@ -35,7 +35,7 @@ def download():
       print(f'案件「{case_number}」案已下載，略過')
       continue
 
-    download_for_case(case_number, car, file_links)
+    download_single_case(case_number, car, file_links)
 
     ws.cell(row, 20).value = 1  # 更改下載碼
     save_excel(wb, 'database')
@@ -46,7 +46,7 @@ def download():
 
 
 # 函式：下載檔案
-def download_for_case(case_number, car, links):
+def download_single_case(case_number, car, links):
   """
   下載單一案件的檔案
   :param case_number:
@@ -58,7 +58,7 @@ def download_for_case(case_number, car, links):
   folder = rf'.\download\{case_number}_{car}'
   try:
     os.mkdir(folder)
-  except(FileExistsError):
+  except FileExistsError:
     pass
   for index, url in enumerate(links):
     file_name = url.split("/")[-1:][0]
@@ -66,23 +66,22 @@ def download_for_case(case_number, car, links):
     path = f'{folder}/{file_name}'  # 檔案路徑
     # if option.qrcode:
     #   make_qrcode(url, path)  # 如果選項開啟，則製作QRcode
-    donwload_times = 0  # 嘗試下載次數
+    download_times = 0  # 嘗試下載次數
     while True:
       # try:
       progress = download_file(url, path)
       if progress == 100:
         log().info(f'{file_name} 下載成功({index}/{len(links)})')
         break
-      if option.download_limit == donwload_times:
+      if option.download_limit == download_times:
         log().error(f'{file_name} 下載嘗試次數已達上限，跳過本檔案，請手動下載。')
         break
       else:
-        donwload_times += 1
+        download_times += 1
         log().error('下載內容不完整，重新開始下載。')
       # except:
       #   log().warning(f'{file_name} 下載失敗，重新開始下載。', exc_info=True)
   log().info(f'「{case_number}」所有檔案下載完畢')
-  return
 
 
 def download_file(url, path):
