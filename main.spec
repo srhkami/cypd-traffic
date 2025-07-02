@@ -21,7 +21,7 @@ exe = EXE(
     a.scripts,
     [],
     exclude_binaries=True,
-    name='main',
+    name='run',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
