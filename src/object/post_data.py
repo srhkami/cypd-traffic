@@ -36,16 +36,16 @@ class ReplyPostData:
 
       reply_text += self.option.text_y  # 加入罐頭訊息
 
-      reply_post_data = {
-        'Memo': reply_text,
-        'Status': '第一次回覆',
-        'IsEnd': '是',
-        'isReport': '否' if self.case.input == 100 else '是',
-        'MailboxTrafficCatalogRejectId': 1,
-        'MailboxTrafficArchiveTitle': self.case.fine,
-        'MailboxTrafficCatalogBackgroundId': articles[self.case.input].code,
-      }
+    reply_post_data = {
+      'Memo': reply_text,
+      'Status': '第一次回覆',
+      'IsEnd': '是',
+      'isReport': '否' if self.case.input == 100 else '是',
+      'MailboxTrafficCatalogRejectId': 1,
+      'MailboxTrafficArchiveTitle': self.case.fine,
+      'MailboxTrafficCatalogBackgroundId': articles[self.case.input].code,
+    }
 
-      log().debug(reply_post_data)
+    log().debug(reply_post_data)
 
-      return reply_post_data
+    return reply_post_data

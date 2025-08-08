@@ -3,5 +3,5 @@
   <component name="Black">
     <option name="sdkName" value="cypd2" />
   </component>
-  <component name="ProjectRootManager" version="2" project-jdk-name="cypd2" project-jdk-type="Python SDK" />
+  <component name="ProjectRootManager" version="2" project-jdk-name="Pipenv (cypdTraffic2)" project-jdk-type="Python SDK" />
 </project>
