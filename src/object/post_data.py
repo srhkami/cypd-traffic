@@ -41,9 +41,9 @@ class ReplyPostData:
       'Status': '第一次回覆',
       'IsEnd': '是',
       'isReport': '否' if self.case.input == 100 else '是',
-      'MailboxTrafficCatalogRejectId': 1,
-      'MailboxTrafficArchiveTitle': self.case.fine,
-      'MailboxTrafficCatalogBackgroundId': articles[self.case.input].code,
+      'MailboxTrafficCatalogRejectId': 13,
+      'MailboxTrafficArchiveTitle': self.case.fine if self.case.input != 100 else '',
+      'MailboxTrafficCatalogBackgroundId': articles[self.case.input].code if self.case.input != 100 else 53,
     }
 
     log().debug(reply_post_data)

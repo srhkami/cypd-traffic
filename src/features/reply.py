@@ -1,4 +1,4 @@
-from src.features.get import get_case_detail,assign_case_by_post
+from src.features.get import get_case_detail, assign_case_by_post
 from src.object.article import get_articles
 from src.object.options import get_option
 from src.object.post_data import ReplyPostData
