@@ -1,11 +1,10 @@
-from static.info import ver
-from utils.log import log
-from func.get import get, handle_one
-from func.reply import reply
-from func.download import download
+from src.static.info import ver
+from src.utils.log import log
+from src.features.get import get,assign_single_case
+from src.features.reply import reply
+from src.features.download import download
 import time
-from static.info import changelog
-from utils.options import select_undertaker
+from src.static.info import changelog
 from pprint import pprint
 
 """
@@ -61,6 +60,10 @@ def menu_main():
 
 
 def menu_station():
+  """
+  分局選單
+  :return:
+  """
   while True:
     time.sleep(0.3)
     print('\n --------------------'
@@ -90,12 +93,16 @@ def menu_station():
 
 
 def menu_precinct():
+  """
+  派出所選單
+  :return:
+  """
   while True:
     time.sleep(0.3)
     print('\n --------------------'
           '\n  ◎ 分局作業 '
           '\n（1）分派案件 (批量模式) '
-          '\n（2）分派案件 (個別模式) '
+          '\n（2）分派案件 (個別模式) --暫時停用 '
           '\n（3）抓取案件資料'
           '\n（4）回覆案件'
           '\n（5）下載檢舉影像'
@@ -113,7 +120,7 @@ def menu_precinct():
         get(handle_mode=True)  # 抓取兼分派
       case '2':
         menu_handle_one()
-        handle_one()
+        assign_single_case()
       case '3':
         menu_get()
         get()
@@ -127,6 +134,10 @@ def menu_precinct():
 
 
 def menu_download():
+  """
+  下載選單
+  :return:
+  """
   print('\n◎ 本程式功能：自動下載案件檔案'
         '\n△ 注意事項：'
         '\n1. 執行前請確認「database」檔案已關閉。'

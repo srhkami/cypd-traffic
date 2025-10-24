@@ -3,11 +3,11 @@ import time
 import requests
 import json
 from contextlib import closing
-from utils.log import log
-from utils.excel import load_excel, save_excel
-from utils.options import get_options
+from src.utils.log import log
+from src.utils.excel import load_excel, save_excel
+from src.object.options import get_option
 
-option = get_options()
+option = get_option()
 
 
 # 主程式
@@ -34,7 +34,7 @@ def download():
       print(f'案件「{case_number}」案已下載，略過')
       continue
 
-    download_for_case(case_number, car, file_links)
+    download_single_case(case_number, car, file_links)
 
     ws.cell(row, 20).value = 1  # 更改下載碼
     save_excel(wb, 'database')
@@ -45,7 +45,7 @@ def download():
 
 
 # 函式：下載檔案
-def download_for_case(case_number, car, links):
+def download_single_case(case_number, car, links):
   """
   下載單一案件的檔案
   :param case_number:
@@ -81,7 +81,6 @@ def download_for_case(case_number, car, links):
       # except:
       #   log().warning(f'{file_name} 下載失敗，重新開始下載。', exc_info=True)
   log().info(f'「{case_number}」所有檔案下載完畢')
-  return
 
 
 def download_file(url, path):

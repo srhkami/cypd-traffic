@@ -1,18 +1,97 @@
-from pprint import pprint
-
-from bs4 import BeautifulSoup
 import time
 import requests
-from utils.log import log
-from utils.options import Undertaker, get_undertakers, select_undertaker
-from utils.excel import load_excel, save_excel
-from utils.webdriver import open_browser, get_intranet_headers
-from static.case import CaseWeb
+from bs4 import BeautifulSoup
+from src.utils.log import log
+from src.utils.webdriver import get_intranet_headers,open_browser
+from src.utils.excel import load_excel, save_excel
+from src.object.undertaker import select_undertaker
+from src.object.undertaker import Undertaker, get_undertakers
+from src.object.case import CaseWeb
 
 
-def get_case_list_table(soup) -> list:
+def get(handle_mode: bool = False):
   """
-  取得案件清單
+  抓取案件的主程式
+  1. 取得權限標頭
+  2. 判斷是否為分派模式（是則選擇承辦人）
+  :param handle_mode: 分派模式，若為True，則會選擇承辦人進行分派
+  :return:
+  """
+
+  headers = get_intranet_headers(mode='F')  # 取得標頭，使用表單模式
+
+  if handle_mode:
+    # 如果開始分派模式
+    undertaker = select_undertaker()  # 選擇承辦人
+
+  wb = load_excel('database')  # 開啟Excel
+  ws = wb['Todo']
+  max_row = ws.max_row  # 取得最大Row數
+
+  todo_case_list = [cell.value for cell in ws['A']]  # 已存在的清單
+
+  page = 1  # 清單頁數
+  case_url_list = []  # 建立一個總案件網址的清單
+
+  while True:
+    # 循環增加頁數，取得清單
+    # 如果取得空清單，則結束執行
+    list_url = f'http://10.124.30.21/Mailbox?cid=5&page={page}'  # 清單的網址
+
+    res = requests.get(list_url, headers=headers)  # 發送請求
+    soup = BeautifulSoup(res.text, 'html.parser')  # 解析清單頁面
+    log().info(f'讀取清單頁面 {list_url}')
+
+    case_urls = get_cases_in_page(soup)
+
+    if not case_urls:
+      log().info('沒有找到下一頁，執行結束')
+      break
+    case_url_list += case_urls  # 將此頁找到的項目加入總清單
+
+    page += 1
+
+  for url in case_url_list:
+    # 從所有案件清單中，依序執行分派或抓取
+
+    if handle_mode:
+      # 如果為分派模式，分派並抓取案件
+      case: CaseWeb | None = assign_case_by_post(f'http://10.124.30.21{url}', undertaker, headers)
+      if not case:
+        # 分派失敗，不儲存該筆
+        continue
+
+    else:
+      # 如果沒有傳入承辦人，正常抓取
+      case: CaseWeb = get_case_detail(f'http://10.124.30.21{url}', headers)
+
+    if case.number in todo_case_list:
+      # 如果案件已存在
+      log().info(f'【{case.number}】已存在資料，不予儲存')
+      continue
+
+    max_row += 1  # 最大Row加1
+    add_values = case.values() + [
+      None,
+      0,
+      f'=VLOOKUP($P{max_row},Article!$A$2:$D$54,3,FALSE)',
+      None,
+      None,
+      0
+    ]  # 要新增row的內容，要加上預設的內容
+
+    ws.append(add_values)  # 新增案件
+
+  save_excel(wb, 'database')
+
+  log().info('抓取案件執行結束。')
+
+  input('輸入任意鍵繼續……')
+
+
+def get_cases_in_page(soup) -> list:
+  """
+  在頁面中取得初步的案件清單
   :param soup:
   :return: 案件詳情網址的列表
   """
@@ -65,82 +144,7 @@ def get_case_detail(detail_url, headers) -> CaseWeb:
   return case
 
 
-def get(handle_mode: bool = False):
-  """
-  抓取案件的主程式
-  :param handle_mode: 分派模式，若為True，則會選擇承辦人進行分派
-  :return:
-  """
-
-  headers = get_intranet_headers(mode='F')  # 取得標頭，使用表單模式
-
-  if handle_mode:
-    # 如果開始分派模式
-    undertaker = select_undertaker()  # 選擇承辦人
-
-  wb = load_excel('database')  # 開啟Excel
-  ws = wb['Todo']
-  max_row = ws.max_row  # 取得最大Row數
-
-  todo_case_list = [cell.value for cell in ws['A']]  # 已存在的清單
-
-  page = 1  # 清單頁數
-  case_url_list = []  # 建立一個總案件網址的清單
-
-  while True:
-    list_url = f'http://10.124.30.21/Mailbox?cid=5&page={page}'  # 清單的網址
-
-    res = requests.get(list_url, headers=headers)  # 發送請求
-    soup = BeautifulSoup(res.text, 'html.parser')  # 解析清單頁面
-    log().info(f'讀取清單頁面 {list_url}')
-
-    case_urls = get_case_list_table(soup)
-
-    if not case_urls:
-      log().info('沒有找到下一頁，執行結束')
-      break
-    case_url_list += case_urls  # 將此頁找到的項目加入總清單
-
-    page += 1
-
-  for url in case_url_list:
-
-    if handle_mode:
-      # 如果為分派模式，分派並抓取案件
-      case: CaseWeb | None = handle_case(f'http://10.124.30.21{url}', undertaker, headers)
-      if not case:
-        # 分派失敗，不儲存該筆
-        continue
-
-    else:
-      # 如果沒有傳入承辦人，正常抓取
-      case: CaseWeb = get_case_detail(f'http://10.124.30.21{url}', headers)
-
-    if case.number in todo_case_list:
-      # 如果案件已存在
-      log().info(f'【{case.number}】已存在資料，不予抓取')
-      continue
-
-    max_row += 1  # 最大Row加1
-    add_values = case.values() + [
-      None,
-      0,
-      f'=VLOOKUP($P{max_row},Article!$A$2:$D$54,3,FALSE)',
-      None,
-      None,
-      0
-    ]  # 要新增row的內容，要加上預設的內容
-
-    ws.append(add_values)  # 新增案件
-
-  save_excel(wb, 'database')
-
-  log().info('抓取案件執行結束。')
-
-  input('輸入任意鍵繼續……')
-
-
-def handle_case(detail_url: str, undertaker: Undertaker, headers) -> CaseWeb | None:
+def assign_case_by_post(detail_url: str, undertaker: Undertaker, headers) -> CaseWeb | None:
   """
   使用Post分派案件
   :param detail_url: 案件詳情網址
@@ -166,7 +170,7 @@ def handle_case(detail_url: str, undertaker: Undertaker, headers) -> CaseWeb | N
     return None
 
 
-def handle_one():
+def assign_single_case():
   """
   分派單一案件
   :return:
@@ -205,8 +209,7 @@ def handle_one():
 
     detail_url = url if 'Details' in url else url.replace('Handler', 'Details')  # 取得詳情網址
 
-    case: CaseWeb | None = handle_case(detail_url, undertaker, headers)  # 分派並抓取案件
-    # case: Case = get_case_detail(detail_url, headers)  # 抓取案件詳情
+    case: CaseWeb | None = assign_case_by_post(detail_url, undertaker, headers)  # 分派並抓取案件
 
     if not case:
       continue
@@ -225,7 +228,3 @@ def handle_one():
 
     browser.back()
     browser.refresh()
-
-
-if __name__ == '__main__':
-  get()
