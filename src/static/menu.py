@@ -1,6 +1,6 @@
 from src.static.info import ver
 from src.utils.log import log
-from src.features.get import get,assign_single_case
+from src.features.get import get, assign_single_case
 from src.features.reply import reply
 from src.features.download import download
 import time
@@ -56,7 +56,7 @@ def menu_main():
         log().debug('程式已結束')
         exit()
       case _:
-        print('輸入錯誤，請重新輸入！')
+        print('找不到選項，請重新輸入！')
 
 
 def menu_station():
@@ -70,7 +70,7 @@ def menu_station():
           '\n  ◎ 派出所作業'
           '\n（1）抓取案件資料'
           '\n（2）回覆案件'
-          '\n（3）下載檢舉影像'
+          '\n（9）下載檢舉影像'
           '\n（0）返回上一頁'
           '\n --------------------'
           )
@@ -86,10 +86,10 @@ def menu_station():
       case '2':
         menu_reply()
         reply(True)
-      case '3':
+      case '9':
         menu_download()  # 進入下載選單
       case _:
-        log().warning('輸入錯誤，請重新輸入！')
+        log().warning('找不到選項，請重新輸入！')
 
 
 def menu_precinct():
@@ -102,12 +102,13 @@ def menu_precinct():
     print('\n --------------------'
           '\n  ◎ 分局作業 '
           '\n（1）分派案件 (批量模式) '
-          '\n（2）分派案件 (個別模式) --暫時停用 '
+          '\n（2）分派案件 (個別模式) '
           '\n（3）抓取案件資料'
-          '\n（4）回覆案件'
-          '\n（5）下載檢舉影像'
+          '\n（4）回覆案件（分派回自己）'
+          '\n（5）回覆案件（不重新分派）'
+          '\n（9）下載檢舉影像'
           '\n（0）返回上一頁'
-         '\n --------------------'
+          '\n --------------------'
           )
     mode = input('請選擇功能：')
     log().debug(f'已選擇次功能{mode}')
@@ -126,11 +127,14 @@ def menu_precinct():
         get()
       case '4':
         menu_reply()
-        reply(False)
+        reply(station_mode=False, re_assign=True)
       case '5':
+        menu_reply()
+        reply(station_mode=False, re_assign=False)
+      case '9':
         menu_download()  # 進入下載選單
       case _:
-        log().warning('輸入錯誤，請重新輸入！')
+        log().warning('找不到選項，請重新輸入！')
 
 
 def menu_download():

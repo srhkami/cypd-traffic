@@ -15,10 +15,11 @@ undertakers = get_undertakers()
 articles = get_articles()
 
 
-def reply(station_mode: bool = True):
+def reply(station_mode: bool = True, re_assign: bool = False):
   """
     執行回覆的主程式
     :param station_mode: 是否為派出所模式
+    :param re_assign: 是否重新分派
     :return: 無
     """
   log().debug('「回覆」開始執行')
@@ -70,8 +71,12 @@ def reply(station_mode: bool = True):
       log().error(f'【{reply_case.number}】未填「舉發單號」，請修正')
       continue
 
-    if not station_mode and reply_case.undertaker != undertakers.get(10).name:
-      # 如果是分局模式，偵測到承辦人不同時，自動重新分派
+    if not station_mode and re_assign and reply_case.undertaker != undertakers.get(10).name:
+      # 如果滿足三個條件：
+      # 非派出所模式
+      # 開啟重新分派
+      # 承辦人並非分局承辦人
+      # 則先重新分派案件
       assign_case_by_post(reply_case.detail_url, undertakers.get(10), headers)
 
     if option.check:
