@@ -1,11 +1,11 @@
-from src.static.info import ver
+from src.ui.info import ver
 from src.utils.log import log
 from src.features.get import get, assign_single_case
 from src.features.reply import reply
 from src.features.download import download
 from src.utils.excel_io import export_cases_to_excel, import_reply_fields_from_excel
 import time
-from src.static.info import changelog
+from src.ui.info import changelog
 from pprint import pprint
 
 """
@@ -51,11 +51,6 @@ def menu_main():
         print('\n△ 更新日誌：\n')
         pprint(changelog)
         input('輸入任意鍵繼續……')
-      # case '123':
-      #   # 貼上網址會有雙引號，故先移除
-      #   url = str(input('請輸入指定網址：')).replace('"', '')
-      #   # url = url_test
-      #   log().info('已啟用測試網址')
       case '0':
         log().debug('程式已結束')
         exit()
@@ -65,8 +60,7 @@ def menu_main():
 
 def menu_station():
   """
-  分局選單
-  :return:
+  派出所選單
   """
   while True:
     time.sleep(0.3)
@@ -91,15 +85,14 @@ def menu_station():
         menu_reply()
         reply(True)
       case '9':
-        menu_download()  # 進入下載選單
+        menu_download()
       case _:
         log().warning('找不到選項，請重新輸入！')
 
 
 def menu_precinct():
   """
-  派出所選單
-  :return:
+  分局選單
   """
   while True:
     time.sleep(0.3)
@@ -122,7 +115,7 @@ def menu_precinct():
         break
       case '1':
         menu_handle_lot()
-        get(handle_mode=True)  # 抓取兼分派
+        get(handle_mode=True)
       case '2':
         menu_handle_one()
         assign_single_case()
@@ -136,7 +129,7 @@ def menu_precinct():
         menu_reply()
         reply(station_mode=False, re_assign=False)
       case '9':
-        menu_download()  # 進入下載選單
+        menu_download()
       case _:
         log().warning('找不到選項，請重新輸入！')
 
@@ -144,7 +137,6 @@ def menu_precinct():
 def menu_download():
   """
   下載選單
-  :return:
   """
   print('\n◎ 本程式功能：自動下載案件檔案'
         '\n△ 注意事項：'

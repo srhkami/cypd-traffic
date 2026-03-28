@@ -3,9 +3,8 @@ import requests
 from bs4 import BeautifulSoup
 from src.utils.log import log
 from src.utils.webdriver import get_intranet_headers, open_browser
-from src.object.undertaker import select_undertaker
-from src.object.undertaker import Undertaker, get_undertakers
-from src.object.case import CaseWeb
+from src.models.undertaker import select_undertaker, Undertaker, get_undertakers
+from src.models.case import CaseWeb
 from src.utils import db
 
 

@@ -4,7 +4,7 @@ import requests
 import json
 from contextlib import closing
 from src.utils.log import log
-from src.object.options import get_option
+from src.models.options import get_option
 from src.utils import db
 
 

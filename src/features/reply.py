@@ -1,14 +1,73 @@
+from pydantic import BaseModel
 from src.features.get import get_case_detail, assign_case_by_post
-from src.object.article import get_articles
-from src.object.options import get_option
-from src.object.post_data import ReplyPostData
-from src.object.undertaker import get_undertakers
+from src.models.article import get_articles, Article
+from src.models.options import get_option, Option
+from src.models.undertaker import get_undertakers
 from src.utils.log import log
-from src.object.case import CaseReply
+from src.models.case import CaseReply
 from src.utils.webdriver import get_intranet_headers
 from src.utils import db
 import requests
 import pprint
+
+
+class ReplyPostPayload(BaseModel):
+  """
+  回覆案件 POST 請求的資料格式
+  """
+  Memo: str
+  Status: str
+  IsEnd: str
+  isReport: str
+  MailboxTrafficCatalogRejectId: int
+  MailboxTrafficArchiveTitle: str
+  MailboxTrafficCatalogBackgroundId: int
+
+
+class ReplyPostData:
+  """
+  回覆案件Post請求所需要的資料
+  """
+  def __init__(self, case: CaseReply, option: Option, articles: dict[int, Article]):
+    self.case = case
+    self.option = option
+    self.articles = articles
+
+  def post_data(self) -> ReplyPostPayload:
+
+    reply_text = '您於本縣警察局交通違規檢舉專區檢舉違規案件，經處理後茲答覆如下：\n'  # 回覆文字
+
+    if self.case.input == 100:
+      # 不舉發的情況
+      log().debug('本案為不舉發')
+      reply_text += self.case.reject_answer  # 加入不舉發回覆
+      reply_text += self.option.text_n  # 加入罐頭訊息
+
+    else:
+      # 舉發的情況
+      log().debug('本案為舉發')
+
+      if self.option.car:  # 加入違規車號
+        reply_text += f'違規車號： {self.case.car}。\n'
+
+      if self.option.article:  # 加入舉發法條
+        reply_text += f'舉發法條： {self.articles[self.case.input].text} 。\n'
+
+      reply_text += self.option.text_y  # 加入罐頭訊息
+
+    payload = ReplyPostPayload(
+      Memo=reply_text,
+      Status='第一次回覆',
+      IsEnd='是',
+      isReport='否' if self.case.input == 100 else '是',
+      MailboxTrafficCatalogRejectId=13,
+      MailboxTrafficArchiveTitle=self.case.fine if self.case.input != 100 else '',
+      MailboxTrafficCatalogBackgroundId=self.articles[self.case.input].code if self.case.input != 100 else 53,
+    )
+
+    log().debug(payload)
+
+    return payload
 
 
 def reply(station_mode: bool = True, re_assign: bool = False):

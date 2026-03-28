@@ -39,8 +39,8 @@ uv run pyinstaller main.spec
 
 ```
 main.py
- ├─ init_db()              ← 必須在所有模組 import 前執行（reply.py 等有模組層級呼叫）
- └─ src/static/menu.py     ← 所有使用者互動介面（主選單、子選單）
+ ├─ init_db()           ← 必須在所有模組 import 前執行
+ └─ src/ui/menu.py      ← 所有使用者互動介面（主選單、子選單）
      ├─ src/features/get.py       ← 擷取案件（從內網爬取並寫入 SQLite）
      ├─ src/features/reply.py     ← 回覆案件（POST 送出回覆並更新 SQLite）
      ├─ src/features/download.py  ← 下載附件（HTTP 下載並存檔）
@@ -58,7 +58,7 @@ main.py
 | `undertakers` | 承辦人清單（派出所代號 → 人員資訊） |
 | `options` | 系統選項（key-value 格式，6 個固定 key） |
 
-**重要約束**：`db.py` 只能 import 標準庫、openpyxl 與 log，不可 import 任何 `src/object/` 下的 Pydantic 模型（避免循環依賴）。所有 DB 函式回傳 `sqlite3.Row`，由各 `object/*.py` 自行組裝 Pydantic 物件。
+**重要約束**：`db.py` 只能 import 標準庫、openpyxl 與 log，不可 import 任何 `src/models/` 下的 Pydantic 模型（避免循環依賴）。所有 DB 函式回傳 `sqlite3.Row`，由各 `models/*.py` 自行組裝 Pydantic 物件。
 
 ### 資料流
 
@@ -75,10 +75,11 @@ main.py
 | `src/utils/db.py` | SQLite 資料層：init_db、migrate_from_excel、所有 CRUD 函式 |
 | `src/utils/excel_io.py` | 匯出案件 Excel（依狀態篩選）、從 Excel 匯入回填資料 |
 | `src/features/get.py` | 從 `http://10.124.30.21/Mailbox?cid=5&page={n}` 分頁擷取案件，支援分派模式 |
-| `src/features/reply.py` | 從 SQLite 讀取案件並批次送出 POST 回覆；含安全確認機制 |
+| `src/features/reply.py` | 從 SQLite 讀取案件並批次送出 POST 回覆；含 `ReplyPostPayload`、`ReplyPostData` 與安全確認機制 |
 | `src/features/download.py` | 依序下載所有案件附件，含重試次數限制與進度顯示 |
-| `src/object/case.py` | `CaseWeb`（網頁擷取，含 `to_db_dict()`）與 `CaseReply`（含 `from_db_row()`）|
-| `src/object/post_data.py` | 建構回覆用 `ReplyPostPayload`，`articles` 由呼叫端傳入（非模組層級） |
+| `src/models/case.py` | `CaseWeb`（網頁擷取，含 `to_db_dict()`）與 `CaseReply`（含 `from_db_row()`）|
+| `src/models/undertaker.py` | `Undertaker` 模型、`get_undertakers()`、`select_undertaker()`（互動式選擇） |
+| `src/ui/menu.py` | 所有選單函式；`src/ui/info.py` 存放版本與更新日誌 |
 | `src/utils/webdriver.py` | 控制 Chrome 瀏覽器進行內網驗證，取得 Cookie 後轉換為 HTTP 標頭 |
 
 ### 作業模式
@@ -102,6 +103,5 @@ main.py
 - `selenium`：Chrome 瀏覽器自動化（內網驗證）
 - `requests` + `beautifulsoup4`：HTTP 請求與 HTML 解析
 - `openpyxl`：Excel 讀寫（匯出/匯入與首次遷移）
-- `pandas`：不再用於主要資料讀寫（可能僅剩舊版相容程式碼）
-- `pydantic`：資料模型與型別驗證（`src/object/` 下所有資料類別）
+- `pydantic`：資料模型與型別驗證（`src/models/` 下所有資料類別）
 - `pyinstaller`：打包為 Windows 獨立執行檔（dev 依賴）

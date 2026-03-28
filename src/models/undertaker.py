@@ -28,6 +28,7 @@ def get_undertakers() -> dict[int, Undertaker]:
 
 def select_undertaker() -> Undertaker:
   """
+  互動式選擇承辦人
   :return: 承辦人資訊
   """
   undertakers = get_undertakers()
