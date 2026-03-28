@@ -33,13 +33,13 @@ def reply(station_mode: bool = True, re_assign: bool = False):
   for row in range(2, max_row + 1):
     # 逐一執行案件
 
-    reply_case = CaseReply(ws, row)  # 建立案件物件
+    reply_case = CaseReply.from_worksheet(ws, row)  # 建立案件物件
 
     reply_post = ReplyPostData(reply_case, option)
     post_data = reply_post.post_data()  # 取得Post的資料
 
     log().info(f'執行案件 {reply_case.number} ( {row - 1} / {max_row - 1} )')
-    log().debug(reply_case.to_dict())
+    log().debug(reply_case.model_dump())
 
     if reply_case.status == '已結案':
       # 如果該案已結案，跳過
@@ -82,9 +82,9 @@ def reply(station_mode: bool = True, re_assign: bool = False):
     if option.check:
       # 如果是安全模式，再次確認回覆文字
       print('\n───────案件再次確認────────')
-      pprint.pprint(reply_case.to_dict())
+      pprint.pprint(reply_case.model_dump())
       print('\n')
-      print(post_data.get('Memo'))
+      print(post_data.Memo)
       check = input('\n△ 是否確定回覆？（Y/n）')
       if check.upper() != 'Y':
         log().error(f'【{reply_case.number}】取消回覆')
@@ -107,7 +107,7 @@ def reply_by_post(undertaker_cell, status_cell, reply_case: CaseReply, headers, 
   :param post_data: POST資料
   :return:
   """
-  requests.post(url=reply_case.reply_url, headers=headers, data=post_data)
+  requests.post(url=reply_case.reply_url, headers=headers, data=post_data.model_dump())
 
   check_case = get_case_detail(detail_url=reply_case.detail_url, headers=headers)  # 再次抓取案件詳情
 

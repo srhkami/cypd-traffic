@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# 虛擬環境
+.venv/
+
+# IDE
+.idea/
+
+# 資料檔（Excel 設定檔與案件資料庫，含敏感資訊）
+data/
+
+# 下載資料夾
+download/
+
+# 紀錄檔
+*.log
+
+# Cookie（含登入憑證）
+cookies.json
+
+# PyInstaller 輸出
+dist/
+build/

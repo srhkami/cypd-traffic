@@ -1,19 +1,19 @@
 import pandas as pd
 import os
+from pydantic import BaseModel
 from src.utils.log import log
 
 
-class Undertaker:
+class Undertaker(BaseModel):
   """
   承辦人
   """
-  def __init__(self, unit, name, code):
-    self.unit = unit
-    self.name = name
-    self.code = code
+  unit: str
+  name: str
+  code: int
 
 
-def get_undertakers() -> dict:
+def get_undertakers() -> dict[int, Undertaker]:
   """
   讀取承辦人，並返回一個依各所代號查詢的字典
   :return:

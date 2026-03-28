@@ -1,9 +1,23 @@
+from pydantic import BaseModel
 from src.object.case import CaseReply
 from src.object.options import Option
 from src.object.article import get_articles
 from src.utils.log import log
 
 articles = get_articles()
+
+
+class ReplyPostPayload(BaseModel):
+  """
+  回覆案件 POST 請求的資料格式
+  """
+  Memo: str
+  Status: str
+  IsEnd: str
+  isReport: str
+  MailboxTrafficCatalogRejectId: int
+  MailboxTrafficArchiveTitle: str
+  MailboxTrafficCatalogBackgroundId: int
 
 
 class ReplyPostData:
@@ -14,7 +28,7 @@ class ReplyPostData:
     self.case = case
     self.option = option
 
-  def post_data(self) -> dict:
+  def post_data(self) -> ReplyPostPayload:
 
     reply_text = '您於本縣警察局交通違規檢舉專區檢舉違規案件，經處理後茲答覆如下：\n'  # 回覆文字
 
@@ -36,16 +50,16 @@ class ReplyPostData:
 
       reply_text += self.option.text_y  # 加入罐頭訊息
 
-    reply_post_data = {
-      'Memo': reply_text,
-      'Status': '第一次回覆',
-      'IsEnd': '是',
-      'isReport': '否' if self.case.input == 100 else '是',
-      'MailboxTrafficCatalogRejectId': 13,
-      'MailboxTrafficArchiveTitle': self.case.fine if self.case.input != 100 else '',
-      'MailboxTrafficCatalogBackgroundId': articles[self.case.input].code if self.case.input != 100 else 53,
-    }
+    payload = ReplyPostPayload(
+      Memo=reply_text,
+      Status='第一次回覆',
+      IsEnd='是',
+      isReport='否' if self.case.input == 100 else '是',
+      MailboxTrafficCatalogRejectId=13,
+      MailboxTrafficArchiveTitle=self.case.fine if self.case.input != 100 else '',
+      MailboxTrafficCatalogBackgroundId=articles[self.case.input].code if self.case.input != 100 else 53,
+    )
 
-    log().debug(reply_post_data)
+    log().debug(payload)
 
-    return reply_post_data
+    return payload

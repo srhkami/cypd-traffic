@@ -127,7 +127,7 @@ def get_case_detail(detail_url, headers) -> CaseWeb:
   tds2 = tables[1].find_all('td')  # 取得下方的表格內容
 
   case = CaseWeb(
-    case_number=tds[0].text.strip(),
+    number=tds[0].text.strip(),
     url=detail_url,
     place=tds[1].text.strip(),
     content=tds[2].text.strip(),
@@ -139,7 +139,7 @@ def get_case_detail(detail_url, headers) -> CaseWeb:
     files=[a['href'] for a in tds2[4].find_all('a')]
   )  # 將案件內容轉化為物件
   log().info(f'【{case.number}】取得詳情成功')
-  log().debug(case.to_dict())
+  log().debug(case.model_dump())
 
   return case
 

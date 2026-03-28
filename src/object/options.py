@@ -1,5 +1,6 @@
 import pandas as pd
 import os
+from pydantic import BaseModel, field_validator
 from src.utils.log import log
 
 """
@@ -7,31 +8,23 @@ from src.utils.log import log
 """
 
 
-class Option:
+class Option(BaseModel):
   """
   程式的設定物件
   """
-  def __init__(self, check, car, article, text_y, text_n, download_limit):
-    self.check = True if check == '開啟' else False
-    self.car = True if car == '開啟' else False
-    self.article = True if article == '開啟' else False
-    self.text_y = text_y
-    self.text_n = text_n
-    self.download_limit = int(download_limit)
+  check: bool
+  car: bool
+  article: bool
+  text_y: str
+  text_n: str
+  download_limit: int
 
-  def values(self):
-    return [self.check, self.car, self.article, self.text_y, self.text_n, self.download_limit]
-
-  def to_dict(self):
-    option_dict = {
-      '安全模式': self.check,
-      '顯示車號': self.car,
-      '顯示法條': self.article,
-      '舉發回覆': self.text_y,
-      '不舉發回覆': self.text_n,
-      '下載上限': self.download_limit,
-    }
-    return option_dict
+  @field_validator('check', 'car', 'article', mode='before')
+  @classmethod
+  def parse_kaizhi(cls, v):
+    if isinstance(v, str):
+      return v == '開啟'
+    return v
 
 
 def get_option() -> Option:
@@ -52,5 +45,5 @@ def get_option() -> Option:
   )
 
   log().debug('成功讀取選項')
-  log().debug(option.values())
+  log().debug(option.model_dump())
   return option

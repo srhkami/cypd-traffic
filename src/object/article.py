@@ -1,15 +1,15 @@
 import pandas as pd
 import os
+from pydantic import BaseModel
 from src.utils.log import log
 
 
-class Article:
-  def __init__(self, code, text):
-    self.code = code
-    self.text = text
+class Article(BaseModel):
+  code: int
+  text: str
 
 
-def get_articles() -> dict:
+def get_articles() -> dict[int, Article]:
   """
   讀取法條對照表，並返回一個依簡碼查詢法條的字典
   :return:
