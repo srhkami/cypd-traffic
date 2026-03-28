@@ -1,6 +1,9 @@
 import time
+from typing import Callable
+
 import requests
 from bs4 import BeautifulSoup
+
 from src.utils.log import log
 from src.utils.webdriver import get_intranet_headers, open_browser
 from src.models.undertaker import select_undertaker, Undertaker, get_undertakers
@@ -8,194 +11,226 @@ from src.models.case import CaseWeb
 from src.utils import db
 
 
-def get(handle_mode: bool = False):
-  """
-  抓取案件的主程式
-  1. 取得權限標頭
-  2. 判斷是否為分派模式（是則選擇承辦人）
-  :param handle_mode: 分派模式，若為True，則會選擇承辦人進行分派
-  :return:
-  """
+# ─────────────────── 核心邏輯（無 input() 互動） ───────────────────
 
-  headers = get_intranet_headers(mode='F')  # 取得標頭，使用表單模式
 
-  if handle_mode:
-    # 如果開始分派模式
-    undertaker = select_undertaker()  # 選擇承辦人
+def scrape_cases(
+    headers: dict,
+    handle_mode: bool = False,
+    undertaker: Undertaker | None = None,
+    on_progress: Callable[[int, int, str], None] | None = None,
+    is_cancelled: Callable[[], bool] | None = None,
+) -> list[dict]:
+    """
+    爬取案件的核心邏輯（不含 CLI 互動）
+    :param headers: 內網 HTTP 標頭
+    :param handle_mode: 是否為分派模式
+    :param undertaker: 分派模式下的承辦人
+    :param on_progress: 進度回呼 (current, total, message)
+    :param is_cancelled: 檢查是否取消的回呼
+    :return: 處理結果列表 [{'number': ..., 'action': ..., 'success': ...}]
+    """
+    todo_case_list = db.get_case_numbers()
+    results = []
 
-  todo_case_list = db.get_case_numbers()  # 已存在的案號清單
+    page = 1
+    case_url_list = []
 
-  page = 1  # 清單頁數
-  case_url_list = []  # 建立一個總案件網址的清單
+    # 分頁爬取清單
+    while True:
+        if is_cancelled and is_cancelled():
+            break
 
-  while True:
-    # 循環增加頁數，取得清單
-    # 如果取得空清單，則結束執行
-    list_url = f'http://10.124.30.21/Mailbox?cid=5&page={page}'  # 清單的網址
+        list_url = f"http://10.124.30.21/Mailbox?cid=5&page={page}"
+        res = requests.get(list_url, headers=headers)
+        soup = BeautifulSoup(res.text, "html.parser")
+        log().info(f"讀取清單頁面 {list_url}")
 
-    res = requests.get(list_url, headers=headers)  # 發送請求
-    soup = BeautifulSoup(res.text, 'html.parser')  # 解析清單頁面
-    log().info(f'讀取清單頁面 {list_url}')
+        case_urls = get_cases_in_page(soup)
+        if not case_urls:
+            log().info("沒有找到下一頁，執行結束")
+            break
 
-    case_urls = get_cases_in_page(soup)
+        case_url_list += case_urls
+        page += 1
 
-    if not case_urls:
-      log().info('沒有找到下一頁，執行結束')
-      break
-    case_url_list += case_urls  # 將此頁找到的項目加入總清單
+    total = len(case_url_list)
+    if on_progress:
+        on_progress(0, total, f"共找到 {total} 筆案件")
 
-    page += 1
+    # 逐案處理
+    for idx, url in enumerate(case_url_list):
+        if is_cancelled and is_cancelled():
+            break
 
-  for url in case_url_list:
-    # 從所有案件清單中，依序執行分派或抓取
+        full_url = f"http://10.124.30.21{url}"
 
+        if handle_mode and undertaker:
+            case = assign_case_by_post(full_url, undertaker, headers)
+            if not case:
+                results.append({"number": "未知", "action": "分派", "success": False})
+                if on_progress:
+                    on_progress(idx + 1, total, f"分派失敗：{url}")
+                continue
+        else:
+            case = get_case_detail(full_url, headers)
+
+        if case.number in todo_case_list:
+            log().info(f"【{case.number}】已存在資料，不予儲存")
+            results.append({"number": case.number, "action": "略過", "success": True})
+        else:
+            db.insert_case(case.to_db_dict())
+            action = "分派並儲存" if handle_mode else "儲存"
+            results.append({"number": case.number, "action": action, "success": True})
+
+        if on_progress:
+            on_progress(idx + 1, total, f"已處理 {case.number}")
+
+    log().info("抓取案件執行結束。")
+    return results
+
+
+# ─────────────────── CLI 包裝（保留原有互動） ───────────────────
+
+
+def get(handle_mode: bool = False) -> None:
+    """
+    抓取案件的主程式（CLI 版本）
+    :param handle_mode: 分派模式，若為 True，則會選擇承辦人進行分派
+    """
+    headers = get_intranet_headers(mode="F")
+
+    undertaker = None
     if handle_mode:
-      # 如果為分派模式，分派並抓取案件
-      case: CaseWeb | None = assign_case_by_post(f'http://10.124.30.21{url}', undertaker, headers)
-      if not case:
-        # 分派失敗，不儲存該筆
-        continue
+        undertaker = select_undertaker()
 
-    else:
-      # 如果沒有傳入承辦人，正常抓取
-      case: CaseWeb = get_case_detail(f'http://10.124.30.21{url}', headers)
+    scrape_cases(headers, handle_mode, undertaker)
 
-    if case.number in todo_case_list:
-      # 如果案件已存在
-      log().info(f'【{case.number}】已存在資料，不予儲存')
-      continue
+    input("輸入任意鍵繼續……")
 
-    db.insert_case(case.to_db_dict())
 
-  log().info('抓取案件執行結束。')
-
-  input('輸入任意鍵繼續……')
+# ─────────────────── 共用工具函式 ───────────────────
 
 
 def get_cases_in_page(soup) -> list:
-  """
-  在頁面中取得初步的案件清單
-  :param soup:
-  :return: 案件詳情網址的列表
-  """
-  table = soup.find(name='table', attrs={'class': 'table'})  # 取得案件清單主表格
-  trs = table.find_all('tr')[1:]  # 取得表格中tbody的所有tr
+    """
+    在頁面中取得初步的案件清單
+    :param soup: BeautifulSoup 物件
+    :return: 案件詳情網址的列表
+    """
+    table = soup.find(name="table", attrs={"class": "table"})
+    trs = table.find_all("tr")[1:]
 
-  if not trs:
-    # 如果沒有資料了，回覆空清單
-    return []
+    if not trs:
+        return []
 
-  case_urls = []
+    case_urls = []
+    for tr in trs:
+        tds = tr.find_all("td")
+        case_urls.append(tds[1].a["href"])
 
-  for tr in trs:
-    tds = tr.find_all('td')
-    case_urls.append(tds[1].a['href'])  # 將案件詳情的連結加入
-
-  return case_urls
+    return case_urls
 
 
-def get_case_detail(detail_url, headers) -> CaseWeb:
-  """
-  取得案件詳情
-  :param detail_url: 案件網址
-  :param headers: 標頭
-  :return: 案件的物件
-  """
-  res = requests.get(detail_url, headers=headers)  # 發送請求
-  soup = BeautifulSoup(res.text, 'html.parser')  # 解析案件詳情頁面
+def get_case_detail(detail_url: str, headers: dict) -> CaseWeb:
+    """
+    取得案件詳情
+    :param detail_url: 案件網址
+    :param headers: 標頭
+    :return: 案件的物件
+    """
+    res = requests.get(detail_url, headers=headers)
+    soup = BeautifulSoup(res.text, "html.parser")
 
-  fieldset = soup.find('fieldset')  # 取得案件詳情表格
-  tables = fieldset.find_all('table', attrs={'class': 'table-h'})  # 取得案件詳情表格
-  tds = tables[0].find_all('td')  # 取得上方的表格內容
-  tds2 = tables[1].find_all('td')  # 取得下方的表格內容
+    fieldset = soup.find("fieldset")
+    tables = fieldset.find_all("table", attrs={"class": "table-h"})
+    tds = tables[0].find_all("td")
+    tds2 = tables[1].find_all("td")
 
-  case = CaseWeb(
-    number=tds[0].text.strip(),
-    url=detail_url,
-    place=tds[1].text.strip(),
-    content=tds[2].text.strip(),
-    sender=tds[3].text.strip(),
-    undertaker=tds[12].text.strip(),
-    status=tds[16].text.strip(),
-    time_all=tds2[0].text.strip(),
-    car=tds2[1].text.strip(),
-    files=[a['href'] for a in tds2[4].find_all('a')]
-  )  # 將案件內容轉化為物件
-  log().info(f'【{case.number}】取得詳情成功')
-  log().debug(case.model_dump())
+    case = CaseWeb(
+        number=tds[0].text.strip(),
+        url=detail_url,
+        place=tds[1].text.strip(),
+        content=tds[2].text.strip(),
+        sender=tds[3].text.strip(),
+        undertaker=tds[12].text.strip(),
+        status=tds[16].text.strip(),
+        time_all=tds2[0].text.strip(),
+        car=tds2[1].text.strip(),
+        files=[a["href"] for a in tds2[4].find_all("a")],
+    )
+    log().info(f"【{case.number}】取得詳情成功")
+    log().debug(case.model_dump())
 
-  return case
-
-
-def assign_case_by_post(detail_url: str, undertaker: Undertaker, headers) -> CaseWeb | None:
-  """
-  使用Post分派案件
-  :param detail_url: 案件詳情網址
-  :param undertaker: 承辦人的物件
-  :param headers: POST標頭
-  :return: 案件或空
-  """
-  post_data = {
-    'HandlerId': undertaker.code,
-    'AuditDays': 6,
-  }
-  handler_url = detail_url.replace('Details', 'Handler')  # 替換為分派的網址
-  res = requests.post(url=handler_url, headers=headers, data=post_data)  # 發送請求
-  log().debug(res)
-  case: CaseWeb = get_case_detail(detail_url, headers)  # 取得案件詳情
-  if case.undertaker[-3:] == undertaker.name:
-    # 如果承辦人已更改，返回案件
-    log().info(f'【{case.number}】分派成功')
     return case
-  else:
-    # 如果承辦人未更改，返回 None
-    log().error(f'【{case.number}】分派失敗')
-    return None
 
 
-def assign_single_case():
-  """
-  分派單一案件
-  :return:
-  """
-  todo_case_list = db.get_case_numbers()
+def assign_case_by_post(
+    detail_url: str, undertaker: Undertaker, headers: dict
+) -> CaseWeb | None:
+    """
+    使用 Post 分派案件
+    :param detail_url: 案件詳情網址
+    :param undertaker: 承辦人的物件
+    :param headers: POST 標頭
+    :return: 案件或空
+    """
+    post_data = {
+        "HandlerId": undertaker.code,
+        "AuditDays": 6,
+    }
+    handler_url = detail_url.replace("Details", "Handler")
+    res = requests.post(url=handler_url, headers=headers, data=post_data)
+    log().debug(res)
+    case = get_case_detail(detail_url, headers)
+    if case.undertaker[-3:] == undertaker.name:
+        log().info(f"【{case.number}】分派成功")
+        return case
+    else:
+        log().error(f"【{case.number}】分派失敗")
+        return None
 
-  headers = get_intranet_headers()  # 取得標題
 
-  browser = open_browser()  # 開啟瀏覽器
-  browser.implicitly_wait(0.5)
+def assign_single_case() -> None:
+    """分派單一案件（CLI 互動版本）"""
+    todo_case_list = db.get_case_numbers()
 
-  while True:
-    time.sleep(0.5)
-    undertakers = get_undertakers()
+    headers = get_intranet_headers()
 
-    x = input('\n△ 請輸入分派對象(退出請輸入0)：')
-    if x == '0':
-      log().info('停止執行分派')
-      browser.quit()
-      break
+    browser = open_browser()
+    browser.implicitly_wait(0.5)
 
-    undertaker: Undertaker = undertakers.get(int(x))
-    if not undertaker:
-      log().warning('承辦人輸入錯誤，請重試')
-      continue
+    while True:
+        time.sleep(0.5)
+        undertakers = get_undertakers()
 
-    log().info(f'已選擇 {undertaker.unit}-{undertaker.name}')
-    url = browser.current_url  # 取得當前網址
-    log().debug(f'當前網址：{url}')
-    if 'Details' not in url and 'Handler' not in url:
-      log().warning('並未在案件網頁中，請進入案件再執行')
-      continue
+        x = input("\n\u25b3 請輸入分派對象(退出請輸入0)：")
+        if x == "0":
+            log().info("停止執行分派")
+            browser.quit()
+            break
 
-    detail_url = url if 'Details' in url else url.replace('Handler', 'Details')  # 取得詳情網址
+        undertaker: Undertaker = undertakers.get(int(x))
+        if not undertaker:
+            log().warning("承辦人輸入錯誤，請重試")
+            continue
 
-    case: CaseWeb | None = assign_case_by_post(detail_url, undertaker, headers)  # 分派並抓取案件
+        log().info(f"已選擇 {undertaker.unit}-{undertaker.name}")
+        url = browser.current_url
+        log().debug(f"當前網址：{url}")
+        if "Details" not in url and "Handler" not in url:
+            log().warning("並未在案件網頁中，請進入案件再執行")
+            continue
 
-    if not case:
-      continue
+        detail_url = url if "Details" in url else url.replace("Handler", "Details")
 
-    if case.number not in todo_case_list:
-      db.insert_case(case.to_db_dict())
+        case = assign_case_by_post(detail_url, undertaker, headers)
 
-    browser.back()
-    browser.refresh()
+        if not case:
+            continue
+
+        if case.number not in todo_case_list:
+            db.insert_case(case.to_db_dict())
+
+        browser.back()
+        browser.refresh()

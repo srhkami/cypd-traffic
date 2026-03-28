@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>嘉義縣交通違規申訴系統</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <header>
+    <h1>嘉義縣交通違規申訴系統</h1>
+    <div id="auth-status" class="auth-badge">認證狀態：檢查中…</div>
+  </header>
+
+  <nav>
+    <button class="nav-btn active" data-panel="cases">案件列表</button>
+    <button class="nav-btn" data-panel="tasks">背景任務</button>
+    <button class="nav-btn" data-panel="actions">操作</button>
+    <button class="nav-btn" data-panel="settings">設定</button>
+  </nav>
+
+  <main>
+    <!-- 案件列表面板 -->
+    <section id="panel-cases" class="panel active">
+      <div class="toolbar">
+        <label>篩選：
+          <select id="case-filter">
+            <option value="">全部</option>
+            <option value="未結案">未結案</option>
+            <option value="已結案">已結案</option>
+            <option value="未下載">未下載</option>
+          </select>
+        </label>
+        <button id="btn-refresh-cases" class="btn">重新整理</button>
+      </div>
+      <div id="case-count" class="info-text"></div>
+      <div class="table-wrap">
+        <table id="case-table">
+          <thead>
+            <tr>
+              <th>案號</th>
+              <th>車號</th>
+              <th>違規地點</th>
+              <th>違規內容</th>
+              <th>承辦人</th>
+              <th>狀態</th>
+              <th>簡碼</th>
+            </tr>
+          </thead>
+          <tbody id="case-tbody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- 背景任務面板 -->
+    <section id="panel-tasks" class="panel">
+      <div class="toolbar">
+        <button id="btn-refresh-tasks" class="btn">重新整理</button>
+      </div>
+      <div id="task-list"></div>
+    </section>
+
+    <!-- 操作面板 -->
+    <section id="panel-actions" class="panel">
+      <h2>爬取與分派</h2>
+      <div class="action-group">
+        <button id="btn-scrape" class="btn btn-primary">爬取案件</button>
+        <button id="btn-scrape-assign" class="btn btn-primary">分派+爬取</button>
+        <select id="undertaker-select" style="display:none;"></select>
+      </div>
+
+      <h2>回覆案件</h2>
+      <div class="action-group">
+        <button id="btn-reply-station" class="btn btn-primary">派出所回覆</button>
+        <button id="btn-reply-precinct" class="btn btn-primary">分局回覆（重新分派）</button>
+        <button id="btn-reply-precinct-no" class="btn btn-primary">分局回覆（不分派）</button>
+      </div>
+
+      <h2>下載附件</h2>
+      <div class="action-group">
+        <button id="btn-download" class="btn btn-primary">批次下載</button>
+      </div>
+
+      <h2>Excel 匯出/匯入</h2>
+      <div class="action-group">
+        <label>匯出篩選：
+          <select id="export-filter">
+            <option value="">全部</option>
+            <option value="未結案">未結案</option>
+            <option value="已結案">已結案</option>
+            <option value="未下載">未下載</option>
+          </select>
+        </label>
+        <button id="btn-export" class="btn btn-primary">匯出 Excel</button>
+      </div>
+      <div class="action-group">
+        <input type="file" id="import-file" accept=".xlsx" style="display:none;">
+        <button id="btn-import" class="btn btn-primary">匯入 Excel</button>
+      </div>
+
+      <h2>認證</h2>
+      <div class="action-group">
+        <button id="btn-login" class="btn">重新登入內網</button>
+        <button id="btn-logout" class="btn">登出</button>
+      </div>
+    </section>
+
+    <!-- 設定面板 -->
+    <section id="panel-settings" class="panel">
+      <h2>系統選項</h2>
+      <div id="options-form"></div>
+      <h2>承辦人列表</h2>
+      <div id="undertaker-list"></div>
+      <h2>法條對照表</h2>
+      <div id="article-list"></div>
+    </section>
+  </main>
+
+  <div id="toast" class="toast hidden"></div>
+  <script src="/app.js"></script>
+</body>
+</html>

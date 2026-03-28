@@ -11,6 +11,10 @@ dependencies = [
   "requests",
   "beautifulsoup4",
   "pydantic",
+  "fastapi",
+  "uvicorn",
+  "pywebview",
+  "python-multipart",
 ]
 
 [dependency-groups]
