@@ -1,10 +1,7 @@
 from pydantic import BaseModel
 from src.object.case import CaseReply
 from src.object.options import Option
-from src.object.article import get_articles
 from src.utils.log import log
-
-articles = get_articles()
 
 
 class ReplyPostPayload(BaseModel):
@@ -24,9 +21,10 @@ class ReplyPostData:
   """
   回覆案件Post請求所需要的資料
   """
-  def __init__(self, case: CaseReply, option: Option):
+  def __init__(self, case: CaseReply, option: Option, articles: dict):
     self.case = case
     self.option = option
+    self.articles = articles
 
   def post_data(self) -> ReplyPostPayload:
 
@@ -46,7 +44,7 @@ class ReplyPostData:
         reply_text += f'違規車號： {self.case.car}。\n'
 
       if self.option.article:  # 加入舉發法條
-        reply_text += f'舉發法條： {articles[self.case.input].text} 。\n'
+        reply_text += f'舉發法條： {self.articles[self.case.input].text} 。\n'
 
       reply_text += self.option.text_y  # 加入罐頭訊息
 
@@ -57,7 +55,7 @@ class ReplyPostData:
       isReport='否' if self.case.input == 100 else '是',
       MailboxTrafficCatalogRejectId=13,
       MailboxTrafficArchiveTitle=self.case.fine if self.case.input != 100 else '',
-      MailboxTrafficCatalogBackgroundId=articles[self.case.input].code if self.case.input != 100 else 53,
+      MailboxTrafficCatalogBackgroundId=self.articles[self.case.input].code if self.case.input != 100 else 53,
     )
 
     log().debug(payload)

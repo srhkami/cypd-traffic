@@ -1,4 +1,5 @@
 import json
+import sqlite3
 from pydantic import BaseModel, computed_field, field_validator
 
 
@@ -44,14 +45,34 @@ class CaseWeb(BaseModel):
     return self.time_all[14:16]
 
   def values(self) -> list:
+    """供匯出 Excel 使用（保留原有格式）"""
     return [self.number, self.car, self.url, self.place, self.content, self.sender,
             self.yy, self.mm, self.dd, self.hr, self.min, json.dumps(self.files), self.undertaker, self.status]
+
+  def to_db_dict(self) -> dict:
+    """轉換為 db.insert_case() 所需的字典格式"""
+    return {
+      'number': self.number,
+      'car': self.car,
+      'detail_url': self.url,
+      'place': self.place,
+      'content': self.content,
+      'sender': self.sender,
+      'year_roc': self.yy,
+      'month': self.mm,
+      'day': self.dd,
+      'hour': self.hr,
+      'minute': self.min,
+      'files_json': json.dumps(self.files),
+      'undertaker': self.undertaker,
+      'status': self.status,
+    }
 
 
 class CaseReply(BaseModel):
   """
-  從Excel中取得的案件資料，轉化為物件
-  用以回覆檔案
+  從資料庫取得的案件資料，轉化為物件
+  用以回覆案件
   """
   number: str           # 案號
   car: str              # 車號
@@ -78,6 +99,7 @@ class CaseReply(BaseModel):
 
   @classmethod
   def from_worksheet(cls, ws, row: int) -> 'CaseReply':
+    """從 openpyxl 工作表建立（匯入 Excel 時使用）"""
     return cls(
       number=ws.cell(row, 1).value,
       car=ws.cell(row, 2).value,
@@ -89,4 +111,20 @@ class CaseReply(BaseModel):
       input=ws.cell(row, 16).value,
       fine=ws.cell(row, 18).value,
       reject_answer=ws.cell(row, 19).value,
+    )
+
+  @classmethod
+  def from_db_row(cls, row: sqlite3.Row) -> 'CaseReply':
+    """從 SQLite Row 物件建立"""
+    return cls(
+      number=row['number'],
+      car=row['car'],
+      detail_url=row['detail_url'],
+      content=row['content'],
+      sender=row['sender'],
+      undertaker=row['undertaker'],
+      status=row['status'],
+      input=row['input_code'],
+      fine=row['fine'],
+      reject_answer=row['reject_answer'],
     )

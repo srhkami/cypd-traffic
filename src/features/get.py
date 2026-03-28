@@ -2,11 +2,11 @@ import time
 import requests
 from bs4 import BeautifulSoup
 from src.utils.log import log
-from src.utils.webdriver import get_intranet_headers,open_browser
-from src.utils.excel import load_excel, save_excel
+from src.utils.webdriver import get_intranet_headers, open_browser
 from src.object.undertaker import select_undertaker
 from src.object.undertaker import Undertaker, get_undertakers
 from src.object.case import CaseWeb
+from src.utils import db
 
 
 def get(handle_mode: bool = False):
@@ -24,11 +24,7 @@ def get(handle_mode: bool = False):
     # 如果開始分派模式
     undertaker = select_undertaker()  # 選擇承辦人
 
-  wb = load_excel('database')  # 開啟Excel
-  ws = wb['Todo']
-  max_row = ws.max_row  # 取得最大Row數
-
-  todo_case_list = [cell.value for cell in ws['A']]  # 已存在的清單
+  todo_case_list = db.get_case_numbers()  # 已存在的案號清單
 
   page = 1  # 清單頁數
   case_url_list = []  # 建立一個總案件網址的清單
@@ -70,19 +66,7 @@ def get(handle_mode: bool = False):
       log().info(f'【{case.number}】已存在資料，不予儲存')
       continue
 
-    max_row += 1  # 最大Row加1
-    add_values = case.values() + [
-      None,
-      0,
-      f'=VLOOKUP($P{max_row},Article!$A$2:$D$54,3,FALSE)',
-      None,
-      None,
-      0
-    ]  # 要新增row的內容，要加上預設的內容
-
-    ws.append(add_values)  # 新增案件
-
-  save_excel(wb, 'database')
+    db.insert_case(case.to_db_dict())
 
   log().info('抓取案件執行結束。')
 
@@ -175,10 +159,7 @@ def assign_single_case():
   分派單一案件
   :return:
   """
-
-  wb = load_excel('database')  # 開啟Excel
-  ws = wb['Todo']
-  max_row = ws.max_row  # 取得最大Row數
+  todo_case_list = db.get_case_numbers()
 
   headers = get_intranet_headers()  # 取得標題
 
@@ -214,17 +195,8 @@ def assign_single_case():
     if not case:
       continue
 
-    add_values = case.values() + [
-      None,
-      0,
-      f'=VLOOKUP($P{max_row + 1},Article!$A$2:$D$54,3,FALSE)',
-      None,
-      None,
-      0
-    ]  # 要新增row的內容，要加上預設的內容
-
-    ws.append(add_values)  # 新增案件
-    save_excel(wb, 'database')  # 儲存Excel
+    if case.number not in todo_case_list:
+      db.insert_case(case.to_db_dict())
 
     browser.back()
     browser.refresh()

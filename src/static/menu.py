@@ -3,6 +3,7 @@ from src.utils.log import log
 from src.features.get import get, assign_single_case
 from src.features.reply import reply
 from src.features.download import download
+from src.utils.excel_io import export_cases_to_excel, import_reply_fields_from_excel
 import time
 from src.static.info import changelog
 from pprint import pprint
@@ -31,6 +32,7 @@ def menu_main():
           '\n ◎ 主選單'
           '\n（1）派出所作業'
           '\n（2）分局 作業'
+          '\n（8）資料管理'
           '\n（9）查看更新日誌'
           '\n（0）退出程式'
           '\n --------------------'
@@ -43,6 +45,8 @@ def menu_main():
         menu_station()
       case '2':
         menu_precinct()
+      case '8':
+        menu_data()
       case '9':
         print('\n△ 更新日誌：\n')
         pprint(changelog)
@@ -190,3 +194,37 @@ def menu_handle_one():
         '\n4. 分派後會自動抓取該案件資料。'
         )
   input('輸入任意鍵繼續……')
+
+
+def menu_data():
+  """
+  資料管理選單
+  """
+  while True:
+    time.sleep(0.3)
+    print('\n --------------------'
+          '\n  ◎ 資料管理'
+          '\n（1）匯出案件 Excel'
+          '\n（2）從 Excel 匯入回填資料'
+          '\n（0）返回上一頁'
+          '\n --------------------'
+          )
+    mode = input('請選擇功能：')
+    log().debug(f'已選擇資料管理功能{mode}')
+
+    match mode:
+      case '0':
+        break
+      case '1':
+        export_cases_to_excel()
+      case '2':
+        print('\n◎ 本程式功能：從匯出的 Excel 中讀取回填資料並更新至資料庫'
+              '\n△ 注意事項：'
+              '\n1. 請選擇先前從本程式匯出的 Excel 檔案。'
+              '\n2. 僅更新已填入「輸入簡碼」（P欄）的列。'
+              '\n3. 比對依據為案號（A欄），找不到對應案號的列會被略過。'
+              )
+        input('輸入任意鍵繼續……')
+        import_reply_fields_from_excel()
+      case _:
+        log().warning('找不到選項，請重新輸入！')

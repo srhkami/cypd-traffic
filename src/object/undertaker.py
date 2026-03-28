@@ -1,6 +1,5 @@
-import pandas as pd
-import os
 from pydantic import BaseModel
+from src.utils import db
 from src.utils.log import log
 
 
@@ -15,27 +14,21 @@ class Undertaker(BaseModel):
 
 def get_undertakers() -> dict[int, Undertaker]:
   """
-  讀取承辦人，並返回一個依各所代號查詢的字典
-  :return:
-  {
-    10: Undertaker物件
-  }
+  讀取承辦人，回傳依各所代號查詢的字典
+  :return: {10: Undertaker物件}
   """
-  excel = pd.read_excel(os.path.abspath(r'.\data\setting.xlsx'), sheet_name='承辦人設定', index_col=0)
-  undertakers = {}  # 承辦人的dict
-  for i in range(0, len(excel.values)):
-    undertakers[excel.index[i]] = Undertaker(
-      unit=excel.values[i][0],
-      name=excel.values[i][1],
-      code=int(excel.values[i][2], )
-    )
+  rows = db.get_undertakers_raw()
+  undertakers = {
+    row['station_id']: Undertaker(unit=row['unit'], name=row['name'], code=row['code'])
+    for row in rows
+  }
   log().debug('成功讀取承辦人設定')
   return undertakers
 
 
 def select_undertaker() -> Undertaker:
   """
-  :return: 承辦人資訊的dict
+  :return: 承辦人資訊
   """
   undertakers = get_undertakers()
   while True:
