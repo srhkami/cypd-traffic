@@ -33,7 +33,7 @@ def get_conn() -> sqlite3.Connection:
     """取得模組層級的 SQLite 連線（單例，單執行緒 CLI 使用）"""
     global _conn
     if _conn is None:
-        _conn = sqlite3.connect(DB_PATH)
+        _conn = sqlite3.connect(DB_PATH, check_same_thread=False)
         _conn.row_factory = sqlite3.Row
     return _conn
 
@@ -94,21 +94,44 @@ def init_db() -> None:
     conn.commit()
     log().debug("資料庫初始化完成")
 
-    # 偵測舊版 Excel，若 cases 表為空則提示遷移
+    # 偵測舊版 Excel，若 cases 表為空則記錄提示
     count = conn.execute("SELECT COUNT(*) FROM cases").fetchone()[0]
     db_xlsx = os.path.join(
         os.path.dirname(os.path.abspath(__file__)), "..", "..", "data", "database.xlsx"
     )
     if count == 0 and os.path.exists(db_xlsx):
-        answer = input("\n△ 偵測到舊版 Excel 資料，是否立即遷移至資料庫？(Y/n) ")
-        if answer.strip().upper() == "Y":
-            migrate_from_excel()
+        log().info("偵測到舊版 Excel 資料，可透過設定頁面進行遷移")
 
 
-def migrate_from_excel() -> None:
+def check_migration_available() -> dict:
+    """
+    檢查是否有舊版 Excel 可遷移
+    :return: {
+        'available': bool,       是否可執行遷移
+        'has_database': bool,    是否有 database.xlsx
+        'has_setting': bool,     是否有 setting.xlsx
+        'cases_count': int       目前 cases 表的筆數
+    }
+    """
+    data_dir = os.path.join(
+        os.path.dirname(os.path.abspath(__file__)), "..", "..", "data"
+    )
+    has_database = os.path.exists(os.path.join(data_dir, "database.xlsx"))
+    has_setting = os.path.exists(os.path.join(data_dir, "setting.xlsx"))
+    cases_count = get_conn().execute("SELECT COUNT(*) FROM cases").fetchone()[0]
+    return {
+        "available": has_database or has_setting,
+        "has_database": has_database,
+        "has_setting": has_setting,
+        "cases_count": cases_count,
+    }
+
+
+def migrate_from_excel() -> dict:
     """
     一次性從舊版 Excel 遷移所有資料至 SQLite
     執行順序：articles → undertakers → options → cases
+    :return: 各類資料遷移筆數
     """
     import openpyxl
 
@@ -118,6 +141,7 @@ def migrate_from_excel() -> None:
     db_path = os.path.join(_data_dir, "database.xlsx")
     setting_path = os.path.join(_data_dir, "setting.xlsx")
     conn = get_conn()
+    result = {"articles": 0, "cases": 0, "undertakers": 0, "options": False}
 
     # ── 法條 ──
     if os.path.exists(db_path):
@@ -128,11 +152,15 @@ def migrate_from_excel() -> None:
             for row in ws.iter_rows(min_row=2, values_only=True):
                 if row[0] is None:
                     break
-                conn.execute(
-                    "INSERT OR IGNORE INTO articles (input_key, code, text) VALUES (?, ?, ?)",
-                    (int(row[0]), int(row[1]), str(row[2])),
-                )
-                count += 1
+                try:
+                    conn.execute(
+                        "INSERT OR IGNORE INTO articles (input_key, code, text) VALUES (?, ?, ?)",
+                        (int(row[0]), int(row[1]), str(row[2])),
+                    )
+                    count += 1
+                except (ValueError, TypeError):
+                    continue
+            result["articles"] = count
             log().info(f"遷移法條：{count} 筆")
 
         # ── 案件 ──
@@ -174,6 +202,7 @@ def migrate_from_excel() -> None:
                     ),
                 )
                 count += 1
+            result["cases"] = count
             log().info(f"遷移案件：{count} 筆")
         wb.close()
 
@@ -192,6 +221,7 @@ def migrate_from_excel() -> None:
                     (int(row[0]), str(row[1]), str(row[2]), int(row[3])),
                 )
                 count += 1
+            result["undertakers"] = count
             log().info(f"遷移承辦人：{count} 筆")
 
         if "選項" in wb.sheetnames:
@@ -205,11 +235,13 @@ def migrate_from_excel() -> None:
                         "INSERT OR REPLACE INTO options (key, value) VALUES (?, ?)",
                         (key, str(row[1])),
                     )
+            result["options"] = True
             log().info("遷移選項完成")
         wb.close()
 
     conn.commit()
     log().info("Excel 遷移全部完成")
+    return result
 
 
 # ─────────────────── 案件 CRUD ───────────────────
@@ -314,12 +346,67 @@ def get_articles_raw() -> list[sqlite3.Row]:
     return get_conn().execute("SELECT * FROM articles").fetchall()
 
 
+def upsert_article(input_key: int, code: int, text: str) -> None:
+    """
+    新增或更新法條（以 input_key 為主鍵）
+    :param input_key: 簡碼
+    :param code: 代碼
+    :param text: 法條內容
+    """
+    conn = get_conn()
+    conn.execute(
+        "INSERT OR REPLACE INTO articles (input_key, code, text) VALUES (?, ?, ?)",
+        (input_key, code, text),
+    )
+    conn.commit()
+
+
+def delete_article(input_key: int) -> int:
+    """
+    刪除指定簡碼的法條
+    :param input_key: 簡碼
+    :return: 刪除筆數（0 表示找不到）
+    """
+    conn = get_conn()
+    cursor = conn.execute("DELETE FROM articles WHERE input_key = ?", (input_key,))
+    conn.commit()
+    return cursor.rowcount
+
+
 # ─────────────────── 承辦人 ───────────────────
 
 
 def get_undertakers_raw() -> list[sqlite3.Row]:
     """回傳所有承辦人資料"""
     return get_conn().execute("SELECT * FROM undertakers").fetchall()
+
+
+def upsert_undertaker(station_id: int, unit: str, name: str, code: int) -> None:
+    """
+    新增或更新承辦人（以 station_id 為主鍵）
+    :param station_id: 各所代號
+    :param unit: 單位名稱
+    :param name: 承辦人姓名
+    :param code: 代碼
+    """
+    conn = get_conn()
+    conn.execute(
+        "INSERT OR REPLACE INTO undertakers (station_id, unit, name, code) VALUES (?, ?, ?, ?)",
+        (station_id, unit, name, code),
+    )
+    conn.commit()
+
+
+def delete_undertaker(station_id: int) -> int:
+    """
+    刪除指定代號的承辦人
+    :param station_id: 各所代號
+    :return: 刪除筆數（0 表示找不到）
+    """
+    conn = get_conn()
+    cursor = conn.execute("DELETE FROM undertakers WHERE station_id = ?", (station_id,))
+    conn.commit()
+    return cursor.rowcount
 
 
 # ─────────────────── 選項 ───────────────────

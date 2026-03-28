@@ -59,11 +59,28 @@ class ArticleOut(BaseModel):
     text: str
 
 
+class ArticleCreate(BaseModel):
+    """新增/更新法條的請求模型"""
+
+    input_key: int
+    code: int
+    text: str
+
+
 # ─────────────────── 承辦人相關 ───────────────────
 
 
 class UndertakerOut(BaseModel):
     """承辦人回應模型"""
+
+    station_id: int
+    unit: str
+    name: str
+    code: int
+
+
+class UndertakerCreate(BaseModel):
+    """新增/更新承辦人的請求模型"""
 
     station_id: int
     unit: str

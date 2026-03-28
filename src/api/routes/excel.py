@@ -5,6 +5,7 @@ from fastapi.responses import FileResponse
 
 from src.api.deps import ok, fail
 from src.api.schemas import ExportRequest
+from src.utils import db
 from src.utils.excel_io import (
     export_cases_core,
     import_reply_fields_core,
@@ -71,3 +72,34 @@ async def import_excel(file: UploadFile = File(...)):
         # 清除暫存檔
         if os.path.exists(temp_path):
             os.remove(temp_path)
+
+
+@router.get("/migrate/status")
+def migration_status():
+    """檢查是否有舊版 Excel 可遷移"""
+    status = db.check_migration_available()
+    return ok("取得遷移狀態", data=status)
+
+
+@router.post("/migrate")
+def run_migration():
+    """執行舊版 Excel 遷移至 SQLite"""
+    status = db.check_migration_available()
+    if not status["available"]:
+        return fail("找不到舊版 Excel 檔案（database.xlsx 或 setting.xlsx）")
+
+    try:
+        result = db.migrate_from_excel()
+        parts = []
+        if result["cases"]:
+            parts.append(f"案件 {result['cases']} 筆")
+        if result["articles"]:
+            parts.append(f"法條 {result['articles']} 筆")
+        if result["undertakers"]:
+            parts.append(f"承辦人 {result['undertakers']} 筆")
+        if result["options"]:
+            parts.append("選項已更新")
+        msg = "遷移完成：" + "、".join(parts) if parts else "遷移完成，但未匯入任何資料"
+        return ok(msg, data=result)
+    except Exception as e:
+        return fail(f"遷移失敗：{str(e)}")

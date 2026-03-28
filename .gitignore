@@ -24,3 +24,5 @@ cookies.json
 # PyInstaller 輸出
 dist/
 build/
+
+*.xlsx

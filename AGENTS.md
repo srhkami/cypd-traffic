@@ -338,6 +338,44 @@ src/
 
 ---
 
+## 已完成功能與已知問題
+
+### 已完成功能（GUI 模式）
+
+以下功能已在 GUI 模式中實作完成：
+
+1. **SQLite 跨執行緒修正**：`db.py` 中 `sqlite3.connect()` 加入 `check_same_thread=False`，因本專案為單一使用者桌面應用，低並行風險
+2. **承辦人 CRUD**（行內編輯）：
+   - 後端：`db.py` 新增 `upsert_undertaker()`、`delete_undertaker()`
+   - API：`POST /api/undertakers`（upsert）、`DELETE /api/undertakers/{station_id}`
+   - 前端：行內 `<input>` 編輯、儲存/刪除按鈕、新增列
+3. **法條 CRUD**（行內編輯）：
+   - 後端：`db.py` 新增 `upsert_article()`、`delete_article()`
+   - API：`POST /api/articles`（upsert）、`DELETE /api/articles/{input_key}`
+   - 前端：同承辦人的行內編輯模式
+4. **資料遷移功能**：
+   - `db.py` 新增 `check_migration_available()`，移除 `init_db()` 中的 `input()` 阻塞呼叫
+   - `migrate_from_excel()` 改為回傳 `dict` 結果，修正 Article 表中間標題列的 `ValueError`
+   - API：`GET /api/excel/migrate/status`、`POST /api/excel/migrate`
+   - 前端：設定頁面的遷移區塊，含狀態檢查、確認對話框、遷移後自動重載
+5. **前端設定頁面重構**：`loadSettings()` 拆分為獨立的 `loadOptions()`、`loadUndertakers()`、`loadArticles()`、`loadMigration()`，各自有 `try/catch`
+6. **承辦人/法條主鍵規則**：`station_id`（承辦人）、`input_key`（法條）為使用者輸入值，使用 `INSERT OR REPLACE` 處理新增與更新，既有列的主鍵欄位設為 `readonly`
+
+### 已知問題與待改善項目
+
+以下為已識別但尚未修正的問題：
+
+1. **案件回覆欄位無法在前端直接編輯**：`PATCH /api/cases/{number}/reply-fields` 端點已存在，但前端未串接，使用者仍需透過 Excel 來回匯出/匯入
+2. **背景任務結果未顯示**：`TaskInfo` 中有 `results` 陣列記錄每筆案件的處理結果（成功/略過/失敗），但前端只顯示進度條，未渲染結果明細
+3. **安全模式（check 選項）在 GUI 模式無效**：CLI 模式會逐筆確認，但 GUI 的 `reply_cases()` 核心函式不支援互動式確認
+4. **`download.py` 使用 `print()`**：`src/features/download.py` 中有數處 `print()` 應改為 `log()`
+5. **任務自動輪詢未停止**：`autoRefreshTasks()` 設定 `setInterval` 後，即使所有任務完成也不會清除計時器
+6. **版本資訊未在前端頁面顯示**：視窗標題有版本號，但頁面本身沒有
+7. **`GET /api/excel/files` 端點未使用**：前端改用檔案上傳，此端點為無用程式碼
+8. **CLI `reply()` 安全模式有 bug**：在 `_check_skip_conditions()` 之前就建構 `post_data`，若案件應略過仍可能觸發錯誤
+
+---
+
 ## 禁止事項
 
 - **嚴禁** commit secrets、API keys 或任何敏感資訊
