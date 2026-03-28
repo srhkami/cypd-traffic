@@ -258,10 +258,11 @@ SQLite 中以 `year_roc`、`month`、`day`、`hour`、`minute` 分欄儲存。
 ### 執行流程
 `main_gui.py` 啟動時的執行順序：
 1. 初始化資料庫（`init_db()`）
-2. 在背景執行緒啟動 FastAPI（uvicorn，預設 `127.0.0.1:8000`）
-3. 在主執行緒啟動 pywebview 視窗，載入前端頁面
-4. pywebview 開啟內網認證視窗（`10.124.30.21`），取得 session cookie
-5. Cookie 存入 `CookieStore` 單例，供所有 API 路由使用
+2. 在背景執行緒啟動 FastAPI（uvicorn，預設隨機可用連接埠）
+3. 在主執行緒啟動 pywebview 視窗，**直接載入本地前端頁面**
+4. 使用者可直接操作資料庫（案件列表、設定、Excel 匯出匯入等）
+5. 需要內網操作時，手動點擊「登入內網」按鈕觸發認證
+6. 認證流程：前端呼叫 `pywebview.api.login()` → 開新視窗連到內網 → 取得 Cookie → 自動關閉認證視窗
 
 ### API 回應格式
 所有 API 端點回傳統一格式：

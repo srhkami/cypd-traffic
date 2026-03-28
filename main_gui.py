@@ -1,5 +1,7 @@
+import json
 import socket
 import threading
+import time
 
 import uvicorn
 import webview
@@ -15,11 +17,112 @@ GUI 入口：啟動 FastAPI（背景執行緒）+ pywebview（主執行緒）
   1. init_db() 初始化資料庫
   2. 取得可用連接埠
   3. 在背景執行緒啟動 FastAPI (uvicorn)
-  4. pywebview 開啟內網認證視窗
-  5. 認證完成後切換至本地前端頁面
+  4. pywebview 直接載入本地前端頁面
+  5. 使用者需要時手動點擊「登入內網」按鈕觸發認證
 """
 
 INTRANET_URL = "http://10.124.30.21"
+
+
+class Api:
+    """
+    暴露給 pywebview 的 JavaScript API
+    前端可透過 window.pywebview.api.xxx() 呼叫這些方法
+    """
+
+    def __init__(self, main_window: webview.Window) -> None:
+        self._main_window = main_window
+        self._auth_lock = threading.Lock()
+
+    def login(self) -> dict:
+        """
+        手動觸發內網認證：開新視窗連到內網頁面取得 Cookie
+        認證完成後自動關閉認證視窗
+        :return: 認證結果 {success: bool, message: str}
+        """
+        if not self._auth_lock.acquire(blocking=False):
+            return {"success": False, "message": "認證視窗已開啟，請勿重複操作"}
+
+        try:
+            return self._do_login()
+        finally:
+            self._auth_lock.release()
+
+    def _do_login(self) -> dict:
+        """執行實際的認證流程"""
+        result = {"success": False, "message": "認證失敗"}
+        auth_done = threading.Event()
+
+        def _on_auth_loaded(auth_window: webview.Window) -> None:
+            """認證視窗載入完成後的回呼，擷取 Cookie"""
+            time.sleep(2)
+
+            current_url = auth_window.get_current_url() or ""
+            log().debug(f"認證視窗目前頁面：{current_url}")
+
+            if "10.124.30.21" not in current_url:
+                log().warning(f"認證視窗未導向內網頁面：{current_url}")
+                result["message"] = "未成功連線至內網"
+                auth_done.set()
+                return
+
+            cookies_json = auth_window.evaluate_js("""
+        (function() {
+          var cookies = document.cookie.split('; ');
+          var result = [];
+          for (var i = 0; i < cookies.length; i++) {
+            var parts = cookies[i].split('=');
+            result.push({name: parts[0], value: parts.slice(1).join('=')});
+          }
+          return JSON.stringify(result);
+        })()
+      """)
+
+            if cookies_json:
+                cookie_list = json.loads(cookies_json)
+                if cookie_list:
+                    cookie_store.set_cookies(cookie_list)
+                    result["success"] = True
+                    result["message"] = "認證成功"
+                    log().info("已從認證視窗取得內網 Cookie")
+
+            auth_done.set()
+
+            # 關閉認證視窗
+            try:
+                auth_window.destroy()
+            except Exception:
+                pass
+
+        # 在新執行緒中建立認證視窗（pywebview 要求在主執行緒以外使用特定方法）
+        auth_window = webview.create_window(
+            title="內網認證",
+            url=INTRANET_URL,
+            width=900,
+            height=600,
+            resizable=True,
+        )
+
+        auth_window.events.loaded += lambda: _on_auth_loaded(auth_window)
+
+        # 等待認證完成（最多 60 秒）
+        auth_done.wait(timeout=60)
+
+        if not auth_done.is_set():
+            result["message"] = "認證逾時"
+            try:
+                auth_window.destroy()
+            except Exception:
+                pass
+
+        return result
+
+    def get_auth_status(self) -> dict:
+        """取得目前認證狀態"""
+        return {
+            "authenticated": cookie_store.is_authenticated(),
+            "last_auth_time": cookie_store.get_last_auth_time(),
+        }
 
 
 def _find_free_port() -> int:
@@ -35,46 +138,6 @@ def _start_api_server(port: int) -> None:
 
     app = create_app()
     uvicorn.run(app, host="127.0.0.1", port=port, log_level="warning")
-
-
-def _on_loaded(window: webview.Window, api_port: int) -> None:
-    """
-    pywebview 視窗載入完成後的回呼
-    負責從內網頁面擷取 Cookie，完成認證後切換到本地前端
-    """
-    import time
-
-    # 等待頁面完全載入
-    time.sleep(2)
-
-    current_url = window.get_current_url() or ""
-    log().debug(f"目前頁面：{current_url}")
-
-    # 若在內網頁面，嘗試擷取 Cookie
-    if "10.124.30.21" in current_url:
-        cookies = window.evaluate_js("""
-      (function() {
-        var cookies = document.cookie.split('; ');
-        var result = [];
-        for (var i = 0; i < cookies.length; i++) {
-          var parts = cookies[i].split('=');
-          result.push({name: parts[0], value: parts.slice(1).join('=')});
-        }
-        return JSON.stringify(result);
-      })()
-    """)
-
-        if cookies:
-            import json
-
-            cookie_list = json.loads(cookies)
-            if cookie_list:
-                cookie_store.set_cookies(cookie_list)
-                log().info("已從 pywebview 取得內網 Cookie")
-
-        # 切換到本地前端
-        window.load_url(f"http://127.0.0.1:{api_port}/")
-        log().info("已切換至本地前端頁面")
 
 
 def main() -> None:
@@ -94,21 +157,22 @@ def main() -> None:
     log().info(f"FastAPI 已在背景啟動，連接埠：{api_port}")
 
     # 等待 API 伺服器就緒
-    import time
-
     time.sleep(1)
 
-    # 3. 建立 pywebview 視窗
+    # 3. 建立 pywebview 視窗，直接載入本地前端
+    local_url = f"http://127.0.0.1:{api_port}/"
+
     window = webview.create_window(
         title=f"嘉義縣交通違規申訴系統 v{ver}",
-        url=INTRANET_URL,
+        url=local_url,
         width=1280,
         height=800,
         resizable=True,
     )
 
-    # 4. 設定認證完成後的回呼
-    window.events.loaded += lambda: _on_loaded(window, api_port)
+    # 4. 建立 Api 實例並綁定至視窗
+    js_api = Api(window)
+    window.expose(js_api.login, js_api.get_auth_status)
 
     # 5. 啟動 pywebview（阻塞主執行緒）
     webview.start(debug=True)

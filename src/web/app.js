@@ -201,8 +201,24 @@ document.getElementById('import-file').onchange = async (e) => {
 };
 
 // 認證
-document.getElementById('btn-login').onclick = () => {
-  toast('請透過應用程式視窗完成內網登入');
+document.getElementById('btn-login').onclick = async () => {
+  // 透過 pywebview js_api 開啟認證視窗
+  if (window.pywebview && window.pywebview.api) {
+    toast('正在開啟內網認證視窗…');
+    try {
+      const result = await window.pywebview.api.login();
+      if (result && result.success) {
+        toast('認證成功');
+      } else {
+        toast(result ? result.message : '認證失敗');
+      }
+    } catch (e) {
+      toast('認證過程發生錯誤：' + e);
+    }
+    checkAuth();
+  } else {
+    toast('pywebview API 尚未就緒，請稍候再試');
+  }
 };
 document.getElementById('btn-logout').onclick = async () => {
   await api('POST', '/api/auth/logout');

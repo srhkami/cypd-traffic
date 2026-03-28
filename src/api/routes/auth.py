@@ -17,18 +17,6 @@ def auth_status():
     return ok("取得認證狀態", data=status.model_dump())
 
 
-@router.post("/login")
-def trigger_login():
-    """
-    觸發 pywebview 開啟內網登入頁面
-    實際登入流程由 main_gui.py 的 pywebview 視窗處理
-    此端點僅回傳是否需要登入的狀態
-    """
-    if cookie_store.is_authenticated():
-        return ok("已認證，無需重新登入")
-    return ok("請透過應用程式視窗完成內網登入", data={"need_login": True})
-
-
 @router.post("/logout")
 def logout():
     """清除認證狀態"""
