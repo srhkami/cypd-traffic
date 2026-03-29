@@ -20,6 +20,7 @@ def download_all_cases(
 ) -> list[dict]:
     """
     批次下載所有案件附件的核心邏輯
+    以 files/{案號}/ 資料夾是否存在來判斷是否已下載
     :param on_progress: 進度回呼 (current, total, message)
     :param on_result: 每筆案件處理完成時的回呼 (result_dict)
     :param is_cancelled: 檢查是否取消的回呼
@@ -37,13 +38,12 @@ def download_all_cases(
             break
 
         case_number = row["number"]
-        car = row["car"]
         file_links = json.loads(row["files_json"])
-        dl_status = row["download_status"]
+        folder = os.path.join("files", case_number)
 
         log().info(f"執行第 {idx + 1} / {total} 案")
 
-        if dl_status == 1:
+        if os.path.isdir(folder):
             log().info(f"案件「{case_number}」已下載，略過")
             result = {"number": case_number, "action": "略過", "success": True}
             results.append(result)
@@ -53,8 +53,7 @@ def download_all_cases(
                 on_progress(idx + 1, total, f"已下載，略過：{case_number}")
             continue
 
-        download_single_case(case_number, car, file_links, option.download_limit)
-        db.update_case_download_status(case_number)
+        download_single_case(case_number, file_links, option.download_limit)
         result = {"number": case_number, "action": "下載完成", "success": True}
         results.append(result)
         if on_result:
@@ -65,6 +64,35 @@ def download_all_cases(
 
     log().info("「下載」執行完畢")
     return results
+
+
+def download_case_by_number(case_number: str) -> dict:
+    """
+    下載單一案件的附件（強制重新下載，覆蓋既有檔案）
+    :param case_number: 案號
+    :return: 處理結果字典
+    """
+    row = db.get_case_by_number(case_number)
+    if row is None:
+        return {
+            "number": case_number,
+            "action": "失敗",
+            "success": False,
+            "reason": "找不到案號",
+        }
+
+    file_links = json.loads(row["files_json"])
+    if not file_links:
+        return {
+            "number": case_number,
+            "action": "略過",
+            "success": True,
+            "reason": "此案件沒有附件",
+        }
+
+    option = get_option()
+    download_single_case(case_number, file_links, option.download_limit)
+    return {"number": case_number, "action": "下載完成", "success": True}
 
 
 # ─────────────────── CLI 包裝（保留原有互動） ───────────────────
@@ -80,18 +108,16 @@ def download() -> None:
 
     for idx, row in enumerate(cases):
         case_number = row["number"]
-        car = row["car"]
         file_links = json.loads(row["files_json"])
-        dl_status = row["download_status"]
+        folder = os.path.join("files", case_number)
 
         log().info(f"執行第 {idx + 1} / {total} 案")
 
-        if dl_status == 1:
+        if os.path.isdir(folder):
             log().info(f"案件「{case_number}」已下載，略過")
             continue
 
-        download_single_case(case_number, car, file_links, option.download_limit)
-        db.update_case_download_status(case_number)
+        download_single_case(case_number, file_links, option.download_limit)
 
     log().info("「下載」執行完畢")
     import time
@@ -104,17 +130,16 @@ def download() -> None:
 
 
 def download_single_case(
-    case_number: str, car: str, links: list[str], download_limit: int
+    case_number: str, links: list[str], download_limit: int
 ) -> None:
     """
     下載單一案件的檔案
     :param case_number: 案號
-    :param car: 車號
     :param links: 附件連結清單
     :param download_limit: 重試上限次數
     """
     log().info(f"開始下載「{case_number}」之檔案……")
-    folder = os.path.join("files", f"{case_number}_{car}")
+    folder = os.path.join("files", case_number)
     os.makedirs(folder, exist_ok=True)
     for index, url in enumerate(links):
         file_name = url.split("/")[-1:][0]

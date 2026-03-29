@@ -9,7 +9,6 @@ from src.utils import db
 from src.utils.excel_io import (
     export_cases_core,
     import_reply_fields_core,
-    list_importable_files,
     get_data_dir,
 )
 
@@ -26,13 +25,6 @@ def export_excel(body: ExportRequest):
         f"已匯出 {result['count']} 筆案件",
         data={"filename": result["filename"], "count": result["count"]},
     )
-
-
-@router.get("/files")
-def list_excel_files():
-    """列出可匯入的 Excel 檔案"""
-    files = list_importable_files()
-    return ok(f"找到 {len(files)} 個檔案", data=files)
 
 
 @router.get("/download/{filename}")

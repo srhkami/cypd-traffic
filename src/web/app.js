@@ -64,29 +64,14 @@ async function loadCases() {
         '<td><a href="#" class="case-link">' + esc(c.number) + '</a></td>' +
         '<td>' + esc(c.car) + '</td>' +
         '<td>' + esc(c.status) + '</td>' +
-        '<td><input type="number" class="inline-input inline-input-code" data-field="input_code" value="' + c.input_code + '"></td>' +
-        '<td><input type="text" class="inline-input inline-input-fine" data-field="fine" value="' + esc(c.fine || '') + '"></td>' +
-        '<td><input type="text" class="inline-input inline-input-wide" data-field="reject_answer" value="' + esc(c.reject_answer || '') + '"></td>' +
-        '<td class="action-cell"><button class="btn btn-small btn-save" data-number="' + esc(c.number) + '">儲存</button></td>';
+        '<td>' + c.input_code + '</td>' +
+        '<td>' + esc(c.fine || '') + '</td>' +
+        '<td>' + esc(c.reject_answer || '') + '</td>';
 
       // 點擊案號開啟詳情視窗
       tr.querySelector('.case-link').onclick = (e) => {
         e.preventDefault();
         openCaseDetail(c);
-      };
-
-      // 儲存按鈕
-      tr.querySelector('.btn-save').onclick = async () => {
-        const inputs = tr.querySelectorAll('.inline-input');
-        const data = {};
-        inputs.forEach(inp => { data[inp.dataset.field] = inp.value; });
-        const body = {
-          input_code: parseInt(data.input_code) || 0,
-          fine: data.fine || null,
-          reject_answer: data.reject_answer || null,
-        };
-        const r = await api('PATCH', '/api/cases/' + c.number + '/reply-fields', body);
-        toast(r.message);
       };
 
       tbody.appendChild(tr);
@@ -100,14 +85,39 @@ function esc(s) {
 }
 
 
+// ─────────────────── 法條快取 ───────────────────
+
+let _articleCache = null; // { input_key: text }
+
+async function getArticleCache() {
+  if (_articleCache) return _articleCache;
+  try {
+    const res = await api('GET', '/api/articles');
+    if (res.success && res.data) {
+      _articleCache = {};
+      res.data.forEach(a => { _articleCache[a.input_key] = a.text; });
+    }
+  } catch { /* 忽略 */ }
+  return _articleCache || {};
+}
+
+/** 設定頁異動法條時清除快取，迫使下次重新取得 */
+function invalidateArticleCache() {
+  _articleCache = null;
+}
+
+
 // ─────────────────── 案件詳情彈出視窗 ───────────────────
 
-function openCaseDetail(c) {
+async function openCaseDetail(c) {
   const modal = document.getElementById('case-modal');
   const title = document.getElementById('modal-title');
   const body = document.getElementById('modal-body');
 
   title.textContent = '案件詳情 - ' + c.number;
+
+  // 預先載入法條快取
+  const articles = await getArticleCache();
 
   // 基本資訊區塊
   const time = c.year_roc + '/' + c.month + '/' + c.day + ' ' + c.hour + ':' + c.minute;
@@ -116,14 +126,52 @@ function openCaseDetail(c) {
   html += '<table class="detail-table">';
   html += '<tr><th>案號</th><td>' + esc(c.number) + '</td></tr>';
   html += '<tr><th>車號</th><td>' + esc(c.car) + '</td></tr>';
+  html += '<tr><th>案件網址</th><td><a href="' + esc(c.detail_url) + '" target="_blank" rel="noopener noreferrer" class="case-link">' + esc(c.detail_url) + '</a></td></tr>';
   html += '<tr><th>違規地點</th><td>' + esc(c.place) + '</td></tr>';
   html += '<tr><th>違規內容</th><td class="detail-wrap">' + esc(c.content) + '</td></tr>';
   html += '<tr><th>承辦人</th><td>' + esc(c.undertaker) + '</td></tr>';
   html += '<tr><th>檢舉人</th><td>' + esc(c.sender) + '</td></tr>';
   html += '<tr><th>違規時間</th><td>' + esc(time) + '</td></tr>';
   html += '<tr><th>狀態</th><td>' + esc(c.status) + '</td></tr>';
-  html += '<tr><th>下載狀態</th><td>' + (c.download_status ? '已下載' : '未下載') + '</td></tr>';
   html += '</table>';
+  html += '</div>';
+
+  // 回填資訊區塊（可編輯）
+  const inputCode = c.input_code || 0;
+  const articleText = articles[inputCode];
+  const hasArticle = articleText !== undefined;
+
+  html += '<div class="detail-section">';
+  html += '<h4>回填資訊</h4>';
+  html += '<div class="reply-form">';
+
+  html += '<div class="reply-row">';
+  html += '<label>簡碼</label>';
+  html += '<input type="number" id="modal-input-code" class="reply-input" value="' + inputCode + '">';
+  html += '<div id="modal-article-hint" class="article-hint ' + (hasArticle ? 'hint-ok' : (inputCode ? 'hint-warn' : '')) + '">';
+  if (hasArticle) {
+    html += esc(articleText);
+  } else if (inputCode) {
+    html += '簡碼不存在於法條對照表中';
+  }
+  html += '</div>';
+  html += '</div>';
+
+  html += '<div class="reply-row">';
+  html += '<label>舉發單號</label>';
+  html += '<input type="text" id="modal-fine" class="reply-input" value="' + esc(c.fine || '') + '">';
+  html += '</div>';
+
+  html += '<div class="reply-row">';
+  html += '<label>不舉發理由</label>';
+  html += '<input type="text" id="modal-reject-answer" class="reply-input reply-input-wide" value="' + esc(c.reject_answer || '') + '">';
+  html += '</div>';
+
+  html += '<div class="reply-actions">';
+  html += '<button class="btn btn-save" id="modal-save-reply"' + (inputCode && !hasArticle ? ' disabled' : '') + '>儲存回填</button>';
+  html += '</div>';
+
+  html += '</div>';
   html += '</div>';
 
   // 附件檔案區塊
@@ -135,11 +183,77 @@ function openCaseDetail(c) {
   body.innerHTML = html;
   modal.classList.remove('hidden');
 
+  // ── 簡碼即時校驗 ──
+  const codeInput = document.getElementById('modal-input-code');
+  const hintEl = document.getElementById('modal-article-hint');
+  const saveBtn = document.getElementById('modal-save-reply');
+
+  codeInput.addEventListener('input', () => {
+    const val = parseInt(codeInput.value);
+    if (!val && val !== 0) {
+      // 空白或非數字：清除提示，允許儲存（簡碼 0 代表未設定）
+      hintEl.textContent = '';
+      hintEl.className = 'article-hint';
+      saveBtn.disabled = false;
+      return;
+    }
+    if (val === 0) {
+      hintEl.textContent = '';
+      hintEl.className = 'article-hint';
+      saveBtn.disabled = false;
+      return;
+    }
+    const text = articles[val];
+    if (text !== undefined) {
+      hintEl.textContent = text;
+      hintEl.className = 'article-hint hint-ok';
+      saveBtn.disabled = false;
+    } else {
+      hintEl.textContent = '簡碼不存在於法條對照表中';
+      hintEl.className = 'article-hint hint-warn';
+      saveBtn.disabled = true;
+    }
+  });
+
+  // ── 儲存回填 ──
+  saveBtn.onclick = async () => {
+    const code = parseInt(codeInput.value) || 0;
+    // 雙重防呆：非 0 時必須存在於法條
+    if (code !== 0 && articles[code] === undefined) {
+      toast('簡碼不存在於法條對照表，無法儲存');
+      return;
+    }
+    const fine = document.getElementById('modal-fine').value || null;
+    const rejectAnswer = document.getElementById('modal-reject-answer').value || null;
+
+    saveBtn.disabled = true;
+    saveBtn.textContent = '儲存中…';
+
+    const r = await api('PATCH', '/api/cases/' + c.number + '/reply-fields', {
+      input_code: code,
+      fine: fine,
+      reject_answer: rejectAnswer,
+    });
+    toast(r.message);
+
+    if (r.success) {
+      // 同步更新彈窗內的案件資料（供下次操作使用）
+      c.input_code = code;
+      c.fine = fine;
+      c.reject_answer = rejectAnswer;
+      // 同步更新列表
+      loadCases();
+    }
+
+    saveBtn.disabled = false;
+    saveBtn.textContent = '儲存回填';
+  };
+
   // 載入檔案列表
-  loadCaseFiles(c.number, c.car, c.files_json, c.download_status);
+  loadCaseFiles(c.number, c.files_json);
 }
 
-async function loadCaseFiles(caseNumber, car, filesJson, downloadStatus) {
+async function loadCaseFiles(caseNumber, filesJson) {
   const container = document.getElementById('modal-files');
 
   // 解析原始附件連結
@@ -153,55 +267,109 @@ async function loadCaseFiles(caseNumber, car, filesJson, downloadStatus) {
     return;
   }
 
-  // 從 API 取得已下載的檔案清單
-  const res = await api('GET', '/api/files/' + encodeURIComponent(caseNumber) + '/' + encodeURIComponent(car));
+  try {
+    // 從 API 取得已下載的檔案清單（僅以案號為路徑）
+    const res = await api('GET', '/api/files/' + encodeURIComponent(caseNumber));
 
-  let html = '';
+    let html = '';
 
-  if (res.success && res.data && res.data.exists && res.data.files.length > 0) {
-    // 已下載：顯示可開啟的檔案列表
+    // 重新下載按鈕（不論是否已下載都顯示）
     html += '<div class="file-actions">';
-    html += '<button class="btn btn-small" id="btn-open-folder">開啟資料夾</button>';
+    if (res.success && res.data && res.data.exists && res.data.files.length > 0) {
+      html += '<button class="btn btn-small" id="btn-open-folder">開啟資料夾</button>';
+    }
+    html += '<button class="btn btn-small" id="btn-redownload">重新下載</button>';
     html += '</div>';
-    res.data.files.forEach(f => {
-      const sizeKB = (f.size / 1024).toFixed(1);
-      html += '<div class="file-item">';
-      html += '<span class="file-name">' + esc(f.name) + '</span>';
-      html += '<span class="file-size">' + sizeKB + ' KB</span>';
-      html += '<button class="btn btn-small btn-open-file" data-name="' + esc(f.name) + '">開啟</button>';
-      html += '</div>';
+
+    if (res.success && res.data && res.data.exists && res.data.files.length > 0) {
+      // 已下載：顯示可開啟的檔案列表
+      res.data.files.forEach(f => {
+        const sizeKB = (f.size / 1024).toFixed(1);
+        html += '<div class="file-item">';
+        html += '<span class="file-name">' + esc(f.name) + '</span>';
+        html += '<span class="file-size">' + sizeKB + ' KB</span>';
+        html += '<button class="btn btn-small btn-open-file" data-name="' + esc(f.name) + '">開啟</button>';
+        html += '</div>';
+      });
+    } else {
+      // 尚未下載：顯示原始連結檔名
+      html += '<div class="info-text">檔案尚未下載</div>';
+      fileUrls.forEach(url => {
+        const fileName = url.split('/').pop() || url;
+        html += '<div class="file-item file-item-pending">';
+        html += '<span class="file-name">' + esc(fileName) + '</span>';
+        html += '<span class="file-status">未下載</span>';
+        html += '</div>';
+      });
+    }
+
+    container.innerHTML = html;
+
+    // 綁定開啟資料夾按鈕
+    const folderBtn = container.querySelector('#btn-open-folder');
+    if (folderBtn) {
+      folderBtn.onclick = async () => {
+        const r = await api('POST', '/api/files/open-folder', { case_number: caseNumber });
+        toast(r.message);
+      };
+    }
+
+    // 綁定重新下載按鈕
+    const redownloadBtn = container.querySelector('#btn-redownload');
+    if (redownloadBtn) {
+      redownloadBtn.onclick = async () => {
+        redownloadBtn.disabled = true;
+        redownloadBtn.textContent = '下載中…';
+        try {
+          const r = await api('POST', '/api/tasks/download/' + encodeURIComponent(caseNumber));
+          toast(r.message);
+          if (r.success) {
+            // 等待下載完成後重新載入檔案列表
+            const taskId = r.data && r.data.task_id;
+            if (taskId) {
+              await waitForTask(taskId);
+            }
+            toast('下載完成，已重新載入檔案列表');
+            loadCaseFiles(caseNumber, filesJson);
+          } else {
+            redownloadBtn.disabled = false;
+            redownloadBtn.textContent = '重新下載';
+          }
+        } catch (e) {
+          toast('下載請求失敗：' + e);
+          redownloadBtn.disabled = false;
+          redownloadBtn.textContent = '重新下載';
+        }
+      };
+    }
+
+    // 綁定每個檔案的開啟按鈕
+    container.querySelectorAll('.btn-open-file').forEach(btn => {
+      btn.onclick = async () => {
+        const fileName = btn.dataset.name;
+        const r = await api('POST', '/api/files/open', { case_number: caseNumber, file_name: fileName });
+        toast(r.message);
+      };
     });
-  } else {
-    // 尚未下載：顯示原始連結檔名
-    html += '<div class="info-text">檔案尚未下載，請先執行批次下載</div>';
-    fileUrls.forEach(url => {
-      const fileName = url.split('/').pop() || url;
-      html += '<div class="file-item file-item-pending">';
-      html += '<span class="file-name">' + esc(fileName) + '</span>';
-      html += '<span class="file-status">未下載</span>';
-      html += '</div>';
-    });
+  } catch (e) {
+    container.innerHTML = '<div class="info-text">載入檔案清單失敗</div>';
   }
+}
 
-  container.innerHTML = html;
-
-  // 綁定開啟資料夾按鈕
-  const folderBtn = container.querySelector('#btn-open-folder');
-  if (folderBtn) {
-    folderBtn.onclick = async () => {
-      const r = await api('POST', '/api/files/open-folder', { case_number: caseNumber, car: car });
-      toast(r.message);
-    };
+async function waitForTask(taskId) {
+  // 等待背景任務完成（最長等待 120 秒）
+  for (let i = 0; i < 120; i++) {
+    await new Promise(r => setTimeout(r, 1000));
+    try {
+      const res = await api('GET', '/api/tasks');
+      if (res.success && res.data) {
+        const task = res.data.find(t => t.task_id === taskId);
+        if (!task || task.status === '已完成' || task.status === '失敗' || task.status === '已取消') {
+          return;
+        }
+      }
+    } catch { return; }
   }
-
-  // 綁定每個檔案的開啟按鈕
-  container.querySelectorAll('.btn-open-file').forEach(btn => {
-    btn.onclick = async () => {
-      const fileName = btn.dataset.name;
-      const r = await api('POST', '/api/files/open', { case_number: caseNumber, car: car, file_name: fileName });
-      toast(r.message);
-    };
-  });
 }
 
 // 關閉 Modal
@@ -613,7 +781,10 @@ function bindArticleRowEvents(tr) {
     if (!confirm('確定要刪除簡碼 ' + id + ' 的法條？')) return;
     const res = await api('DELETE', '/api/articles/' + id);
     toast(res.message);
-    if (res.success) loadArticles();
+    if (res.success) {
+      invalidateArticleCache();
+      loadArticles();
+    }
   };
 }
 
@@ -635,7 +806,10 @@ async function saveArticleRow(tr, isNew) {
 
   const res = await api('POST', '/api/articles', body);
   toast(res.message);
-  if (res.success) loadArticles();
+  if (res.success) {
+    invalidateArticleCache();
+    loadArticles();
+  }
 }
 
 async function loadMigration() {

@@ -360,19 +360,33 @@ src/
    - 前端：設定頁面的遷移區塊，含狀態檢查、確認對話框、遷移後自動重載
 5. **前端設定頁面重構**：`loadSettings()` 拆分為獨立的 `loadOptions()`、`loadUndertakers()`、`loadArticles()`、`loadMigration()`，各自有 `try/catch`
 6. **承辦人/法條主鍵規則**：`station_id`（承辦人）、`input_key`（法條）為使用者輸入值，使用 `INSERT OR REPLACE` 處理新增與更新，既有列的主鍵欄位設為 `readonly`
+7. **下載功能重構**：
+   - 資料夾路徑從 `files/{案號}_{車號}` 簡化為 `files/{案號}`
+   - 移除 `download_status` 資料庫欄位，改以 `files/{案號}/` 資料夾是否存在判斷下載狀態
+   - 新增 `download_case_by_number()` 核心函式，支援單一案件強制重新下載
+   - API：`POST /api/tasks/download/{case_number}` 單一案件下載端點
+   - `files.py` 路由移除 `car` 參數，路徑簡化為 `/api/files/{case_number}`
+8. **案件詳情彈窗強化**：
+   - 新增「案件網址」欄位，以 `target="_blank"` 超連結顯示 `detail_url`
+   - 新增「回填資訊」可編輯區塊（簡碼、舉發單號、不舉發理由），串接 `PATCH /api/cases/{number}/reply-fields`
+   - 移除列表頁行內編輯（inline-input），改為在彈窗中統一操作
+   - 移除列表頁「操作」欄位
+9. **法條快取與簡碼即時校驗**：
+   - 前端建立 `_articleCache`（`{ input_key: text }`），從 `GET /api/articles` 取得並快取
+   - 簡碼輸入時即時比對法條表，存在時顯示綠色法條文字，不存在時顯示紅色警告並禁用儲存按鈕
+   - 簡碼為 0 視為「未設定」，始終允許儲存
+   - 設定頁面異動法條時呼叫 `invalidateArticleCache()` 清除快取
+10. **重新下載按鈕**：彈窗附件區塊新增「重新下載」按鈕，觸發單一案件下載背景任務，下載中禁用按鈕並顯示進度，完成後自動重新載入檔案列表
+11. **API 回應型別修正**：`files.py`（3 個端點）與 `app.py`（`get_version`）的回傳型別從 `dict` 修正為 `ApiResponse`，解決 FastAPI `ResponseValidationError`
+12. **CLI 修正**：
+    - `reply.py`：將 `post_data()` 建構移至 `_check_skip_conditions()` 之後，避免應略過的案件觸發錯誤
+    - `menu.py`：統一縮排為 4 空格
+    - `excel_io.py`：移除 `download_status` 相關欄位與「未下載」篩選選項
+13. **移除無用程式碼**：刪除 `GET /api/excel/files` 端點、`list_importable_files` import、`CaseOut.download_status` 欄位、前端「未下載」篩選選項
 
 ### 已知問題與待改善項目
 
-以下為已識別但尚未修正的問題：
-
-1. **案件回覆欄位無法在前端直接編輯**：`PATCH /api/cases/{number}/reply-fields` 端點已存在，但前端未串接，使用者仍需透過 Excel 來回匯出/匯入
-2. **背景任務結果未顯示**：`TaskInfo` 中有 `results` 陣列記錄每筆案件的處理結果（成功/略過/失敗），但前端只顯示進度條，未渲染結果明細
-3. **安全模式（check 選項）在 GUI 模式無效**：CLI 模式會逐筆確認，但 GUI 的 `reply_cases()` 核心函式不支援互動式確認
-4. **`download.py` 使用 `print()`**：`src/features/download.py` 中有數處 `print()` 應改為 `log()`
-5. **任務自動輪詢未停止**：`autoRefreshTasks()` 設定 `setInterval` 後，即使所有任務完成也不會清除計時器
-6. **版本資訊未在前端頁面顯示**：視窗標題有版本號，但頁面本身沒有
-7. **`GET /api/excel/files` 端點未使用**：前端改用檔案上傳，此端點為無用程式碼
-8. **CLI `reply()` 安全模式有 bug**：在 `_check_skip_conditions()` 之前就建構 `post_data`，若案件應略過仍可能觸發錯誤
+目前無已知問題。
 
 ---
 

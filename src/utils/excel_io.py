@@ -27,14 +27,12 @@ _TODO_HEADERS = [
     "法條（自動）",
     "舉發單號",
     "不舉發理由",
-    "下載狀態",
 ]
 
 _STATUS_OPTIONS = {
     "1": None,
     "2": "未結案",
     "3": "已結案",
-    "4": "未下載",
 }
 
 
@@ -81,7 +79,6 @@ def export_cases_core(status_filter: str | None = None) -> dict:
             f"=VLOOKUP($P{row_num},Article!$A$2:$D$54,3,FALSE)",
             case["fine"],
             case["reject_answer"],
-            case["download_status"],
         ]
         ws_todo.append(row_data)
 
@@ -179,7 +176,6 @@ def export_cases_to_excel() -> None:
         "\n（1）全部"
         "\n（2）未結案"
         "\n（3）已結案"
-        "\n（4）未下載"
     )
     mode = input("請選擇篩選條件：").strip()
     status_filter = _STATUS_OPTIONS.get(mode)

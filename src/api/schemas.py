@@ -37,7 +37,6 @@ class CaseOut(BaseModel):
     input_code: int
     fine: str | None = None
     reject_answer: str | None = None
-    download_status: int
 
 
 class ReplyFieldsUpdate(BaseModel):

@@ -44,3 +44,41 @@ def start_download():
     thread.start()
 
     return ok("下載任務已啟動", data={"task_id": task.task_id})
+
+
+@router.post("/{case_number}")
+def start_single_download(case_number: str):
+    """
+    下載單一案件的附件（強制重新下載覆蓋）
+    :param case_number: 案號
+    """
+    task = tasks.create_task("download")
+
+    def _run() -> None:
+        from src.features.download import download_case_by_number
+
+        tasks.update_task(
+            task.task_id,
+            status=tasks.TaskStatus.RUNNING,
+            total=1,
+            message=f"開始下載：{case_number}",
+        )
+
+        try:
+            result = download_case_by_number(case_number)
+            tasks.update_task(task.task_id, result=result, current=1)
+            tasks.update_task(
+                task.task_id,
+                status=tasks.TaskStatus.COMPLETED,
+                message=f"下載完成：{case_number}",
+            )
+        except Exception as e:
+            log().error(f"下載任務失敗：{e}", exc_info=True)
+            tasks.update_task(
+                task.task_id, status=tasks.TaskStatus.FAILED, message=str(e)
+            )
+
+    thread = threading.Thread(target=_run, daemon=True)
+    thread.start()
+
+    return ok(f"下載任務已啟動：{case_number}", data={"task_id": task.task_id})

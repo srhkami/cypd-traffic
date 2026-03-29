@@ -289,14 +289,6 @@ h2 {
   min-width: 200px;
 }
 
-.inline-input-code {
-  min-width: 100px;
-}
-
-.inline-input-fine {
-  min-width: 160px;
-}
-
 .action-cell {
   display: flex;
   gap: 4px;
@@ -525,10 +517,6 @@ h2 {
   gap: 6px;
 }
 
-.file-actions {
-  margin-bottom: 8px;
-}
-
 .file-item {
   display: flex;
   align-items: center;
@@ -559,4 +547,81 @@ h2 {
   font-size: 12px;
   color: #636e72;
   font-style: italic;
+}
+
+/* ─────────────────── 彈窗回填資訊 ─────────────────── */
+
+.reply-form {
+  background: #f5f6fa;
+  border: 1px solid #dfe6e9;
+  border-radius: 6px;
+  padding: 16px;
+}
+
+.reply-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.reply-row label {
+  min-width: 80px;
+  font-weight: 600;
+  font-size: 13px;
+  line-height: 30px;
+  flex-shrink: 0;
+}
+
+.reply-input {
+  padding: 5px 8px;
+  border: 1px solid #b2bec3;
+  border-radius: 4px;
+  font-size: 13px;
+  font-family: inherit;
+  width: 160px;
+}
+
+.reply-input:focus {
+  outline: none;
+  border-color: #0984e3;
+}
+
+.reply-input-wide {
+  width: 100%;
+  max-width: 400px;
+}
+
+.reply-actions {
+  margin-top: 4px;
+}
+
+.article-hint {
+  font-size: 12px;
+  line-height: 30px;
+  flex: 1;
+  min-width: 0;
+  word-break: break-all;
+}
+
+.article-hint.hint-ok {
+  color: #00b894;
+}
+
+.article-hint.hint-warn {
+  color: #d63031;
+  font-weight: 600;
+}
+
+.btn:disabled,
+.btn-save:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.file-actions {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
 }

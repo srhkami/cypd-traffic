@@ -4,6 +4,7 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 
 from src.api.deps import ok
+from src.api.schemas import ApiResponse
 from src.api.routes import (
     cases,
     articles,
@@ -33,7 +34,7 @@ def create_app() -> FastAPI:
 
     # ── 版本端點 ──
     @app.get("/api/version")
-    def get_version() -> dict:
+    def get_version() -> ApiResponse:
         """取得應用程式版本"""
         return ok("取得版本成功", data={"version": ver})
 

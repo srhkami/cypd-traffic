@@ -60,5 +60,4 @@ def _row_to_case(row) -> dict:
         input_code=row["input_code"],
         fine=row["fine"],
         reject_answer=row["reject_answer"],
-        download_status=row["download_status"],
     ).model_dump()

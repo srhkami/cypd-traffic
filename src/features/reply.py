@@ -192,9 +192,6 @@ def reply(station_mode: bool = True, re_assign: bool = False) -> None:
     for idx, row in enumerate(cases):
         reply_case = CaseReply.from_db_row(row)
 
-        reply_post = ReplyPostData(reply_case, option, articles)
-        post_data = reply_post.post_data()
-
         log().info(f"執行案件 {reply_case.number} ( {idx + 1} / {total} )")
         log().debug(reply_case.model_dump())
 
@@ -202,6 +199,9 @@ def reply(station_mode: bool = True, re_assign: bool = False) -> None:
         if skip_reason:
             log().error(f"【{reply_case.number}】{skip_reason}")
             continue
+
+        reply_post = ReplyPostData(reply_case, option, articles)
+        post_data = reply_post.post_data()
 
         if (
             not station_mode
