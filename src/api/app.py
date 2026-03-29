@@ -3,6 +3,7 @@ import os
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 
+from src.api.deps import ok
 from src.api.routes import (
     cases,
     articles,
@@ -14,7 +15,9 @@ from src.api.routes import (
     download,
     excel,
     tasks,
+    files,
 )
+from src.ui.info import ver
 
 
 def create_app() -> FastAPI:
@@ -25,8 +28,14 @@ def create_app() -> FastAPI:
     app = FastAPI(
         title="嘉義縣交通違規申訴系統 API",
         description="提供案件管理、爬取、回覆、下載等功能的 RESTful API",
-        version="1.0.0",
+        version=ver,
     )
+
+    # ── 版本端點 ──
+    @app.get("/api/version")
+    def get_version() -> dict:
+        """取得應用程式版本"""
+        return ok("取得版本成功", data={"version": ver})
 
     # ── 掛載 API 路由 ──
     app.include_router(cases.router)
@@ -39,6 +48,7 @@ def create_app() -> FastAPI:
     app.include_router(download.router)
     app.include_router(excel.router)
     app.include_router(tasks.router)
+    app.include_router(files.router)
 
     # ── 掛載靜態前端檔案 ──
     web_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "web")

@@ -8,7 +8,7 @@
 </head>
 <body>
   <header>
-    <h1>嘉義縣交通違規申訴系統</h1>
+    <h1>嘉義縣交通違規申訴系統 <span id="app-version" style="font-size:12px;font-weight:normal;margin-left:8px;opacity:0.7;"></span></h1>
     <div id="auth-status" class="auth-badge">認證狀態：檢查中…</div>
   </header>
 
@@ -40,11 +40,11 @@
             <tr>
               <th>案號</th>
               <th>車號</th>
-              <th>違規地點</th>
-              <th>違規內容</th>
-              <th>承辦人</th>
               <th>狀態</th>
               <th>簡碼</th>
+              <th>舉發單號</th>
+              <th>不舉發理由</th>
+              <th>操作</th>
             </tr>
           </thead>
           <tbody id="case-tbody"></tbody>
@@ -117,6 +117,17 @@
       <div id="migration-section"></div>
     </section>
   </main>
+
+  <!-- 案件詳情彈出視窗 -->
+  <div id="case-modal" class="modal-overlay hidden">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 id="modal-title">案件詳情</h3>
+        <button class="modal-close" id="modal-close">&times;</button>
+      </div>
+      <div class="modal-body" id="modal-body"></div>
+    </div>
+  </div>
 
   <div id="toast" class="toast hidden"></div>
   <script src="/app.js"></script>

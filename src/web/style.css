@@ -289,6 +289,14 @@ h2 {
   min-width: 200px;
 }
 
+.inline-input-code {
+  min-width: 100px;
+}
+
+.inline-input-fine {
+  min-width: 160px;
+}
+
 .action-cell {
   display: flex;
   gap: 4px;
@@ -354,4 +362,201 @@ h2 {
 .migration-warn {
   color: #d63031;
   font-size: 13px;
+}
+
+.task-results-toggle {
+  display: inline-block;
+  cursor: pointer;
+}
+
+.task-results.hidden {
+  display: none;
+}
+
+.task-results {
+  margin-top: 8px;
+}
+
+.task-results-table {
+  font-size: 12px;
+  width: 100%;
+}
+
+.task-results-table th {
+  background: #b2bec3;
+  padding: 4px 8px;
+  font-size: 12px;
+}
+
+.task-results-table td {
+  padding: 4px 8px;
+  font-size: 12px;
+}
+
+.result-ok {
+  background: #dfe6e9;
+}
+
+.result-fail {
+  background: #fab1a0;
+}
+
+/* ─────────────────── 案號連結 ─────────────────── */
+
+.case-link {
+  color: #0984e3;
+  text-decoration: none;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.case-link:hover {
+  text-decoration: underline;
+}
+
+/* ─────────────────── 彈出視窗 (Modal) ─────────────────── */
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9000;
+}
+
+.modal-overlay.hidden {
+  display: none;
+}
+
+.modal {
+  background: #fff;
+  border-radius: 8px;
+  width: 90%;
+  max-width: 680px;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid #dfe6e9;
+  flex-shrink: 0;
+}
+
+.modal-header h3 {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: #636e72;
+  padding: 0 4px;
+  line-height: 1;
+}
+
+.modal-close:hover {
+  color: #d63031;
+}
+
+.modal-body {
+  padding: 20px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+/* ─────────────────── 詳情區塊 ─────────────────── */
+
+.detail-section {
+  margin-bottom: 20px;
+}
+
+.detail-section h4 {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 8px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid #dfe6e9;
+}
+
+.detail-table {
+  width: 100%;
+  background: #fff;
+}
+
+.detail-table th {
+  background: #f0f3f5;
+  color: #2d3436;
+  font-weight: 600;
+  width: 100px;
+  font-size: 13px;
+  white-space: nowrap;
+  vertical-align: top;
+}
+
+.detail-table td {
+  font-size: 13px;
+  vertical-align: top;
+}
+
+.detail-wrap {
+  white-space: normal;
+  word-break: break-all;
+}
+
+/* ─────────────────── 檔案列表 ─────────────────── */
+
+.file-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.file-actions {
+  margin-bottom: 8px;
+}
+
+.file-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  background: #f5f6fa;
+  border-radius: 4px;
+  border: 1px solid #dfe6e9;
+}
+
+.file-item-pending {
+  opacity: 0.6;
+}
+
+.file-name {
+  flex: 1;
+  font-size: 13px;
+  word-break: break-all;
+}
+
+.file-size {
+  font-size: 12px;
+  color: #636e72;
+  white-space: nowrap;
+}
+
+.file-status {
+  font-size: 12px;
+  color: #636e72;
+  font-style: italic;
 }

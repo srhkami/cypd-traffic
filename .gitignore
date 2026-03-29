@@ -13,7 +13,7 @@ __pycache__/
 data/
 
 # 下載資料夾
-download/
+files/
 
 # 紀錄檔
 *.log

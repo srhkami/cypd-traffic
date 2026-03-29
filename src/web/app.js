@@ -61,13 +61,34 @@ async function loadCases() {
     res.data.forEach(c => {
       const tr = document.createElement('tr');
       tr.innerHTML =
-        '<td>' + esc(c.number) + '</td>' +
+        '<td><a href="#" class="case-link">' + esc(c.number) + '</a></td>' +
         '<td>' + esc(c.car) + '</td>' +
-        '<td>' + esc(c.place) + '</td>' +
-        '<td>' + esc(c.content) + '</td>' +
-        '<td>' + esc(c.undertaker) + '</td>' +
         '<td>' + esc(c.status) + '</td>' +
-        '<td>' + c.input_code + '</td>';
+        '<td><input type="number" class="inline-input inline-input-code" data-field="input_code" value="' + c.input_code + '"></td>' +
+        '<td><input type="text" class="inline-input inline-input-fine" data-field="fine" value="' + esc(c.fine || '') + '"></td>' +
+        '<td><input type="text" class="inline-input inline-input-wide" data-field="reject_answer" value="' + esc(c.reject_answer || '') + '"></td>' +
+        '<td class="action-cell"><button class="btn btn-small btn-save" data-number="' + esc(c.number) + '">儲存</button></td>';
+
+      // 點擊案號開啟詳情視窗
+      tr.querySelector('.case-link').onclick = (e) => {
+        e.preventDefault();
+        openCaseDetail(c);
+      };
+
+      // 儲存按鈕
+      tr.querySelector('.btn-save').onclick = async () => {
+        const inputs = tr.querySelectorAll('.inline-input');
+        const data = {};
+        inputs.forEach(inp => { data[inp.dataset.field] = inp.value; });
+        const body = {
+          input_code: parseInt(data.input_code) || 0,
+          fine: data.fine || null,
+          reject_answer: data.reject_answer || null,
+        };
+        const r = await api('PATCH', '/api/cases/' + c.number + '/reply-fields', body);
+        toast(r.message);
+      };
+
       tbody.appendChild(tr);
     });
   }
@@ -77,6 +98,121 @@ function esc(s) {
   if (!s) return '';
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
+
+
+// ─────────────────── 案件詳情彈出視窗 ───────────────────
+
+function openCaseDetail(c) {
+  const modal = document.getElementById('case-modal');
+  const title = document.getElementById('modal-title');
+  const body = document.getElementById('modal-body');
+
+  title.textContent = '案件詳情 - ' + c.number;
+
+  // 基本資訊區塊
+  const time = c.year_roc + '/' + c.month + '/' + c.day + ' ' + c.hour + ':' + c.minute;
+  let html = '<div class="detail-section">';
+  html += '<h4>基本資訊</h4>';
+  html += '<table class="detail-table">';
+  html += '<tr><th>案號</th><td>' + esc(c.number) + '</td></tr>';
+  html += '<tr><th>車號</th><td>' + esc(c.car) + '</td></tr>';
+  html += '<tr><th>違規地點</th><td>' + esc(c.place) + '</td></tr>';
+  html += '<tr><th>違規內容</th><td class="detail-wrap">' + esc(c.content) + '</td></tr>';
+  html += '<tr><th>承辦人</th><td>' + esc(c.undertaker) + '</td></tr>';
+  html += '<tr><th>檢舉人</th><td>' + esc(c.sender) + '</td></tr>';
+  html += '<tr><th>違規時間</th><td>' + esc(time) + '</td></tr>';
+  html += '<tr><th>狀態</th><td>' + esc(c.status) + '</td></tr>';
+  html += '<tr><th>下載狀態</th><td>' + (c.download_status ? '已下載' : '未下載') + '</td></tr>';
+  html += '</table>';
+  html += '</div>';
+
+  // 附件檔案區塊
+  html += '<div class="detail-section">';
+  html += '<h4>附件檔案</h4>';
+  html += '<div id="modal-files" class="file-list"><div class="info-text">載入中…</div></div>';
+  html += '</div>';
+
+  body.innerHTML = html;
+  modal.classList.remove('hidden');
+
+  // 載入檔案列表
+  loadCaseFiles(c.number, c.car, c.files_json, c.download_status);
+}
+
+async function loadCaseFiles(caseNumber, car, filesJson, downloadStatus) {
+  const container = document.getElementById('modal-files');
+
+  // 解析原始附件連結
+  let fileUrls = [];
+  try {
+    fileUrls = JSON.parse(filesJson || '[]');
+  } catch { fileUrls = []; }
+
+  if (fileUrls.length === 0) {
+    container.innerHTML = '<div class="info-text">此案件沒有附件</div>';
+    return;
+  }
+
+  // 從 API 取得已下載的檔案清單
+  const res = await api('GET', '/api/files/' + encodeURIComponent(caseNumber) + '/' + encodeURIComponent(car));
+
+  let html = '';
+
+  if (res.success && res.data && res.data.exists && res.data.files.length > 0) {
+    // 已下載：顯示可開啟的檔案列表
+    html += '<div class="file-actions">';
+    html += '<button class="btn btn-small" id="btn-open-folder">開啟資料夾</button>';
+    html += '</div>';
+    res.data.files.forEach(f => {
+      const sizeKB = (f.size / 1024).toFixed(1);
+      html += '<div class="file-item">';
+      html += '<span class="file-name">' + esc(f.name) + '</span>';
+      html += '<span class="file-size">' + sizeKB + ' KB</span>';
+      html += '<button class="btn btn-small btn-open-file" data-name="' + esc(f.name) + '">開啟</button>';
+      html += '</div>';
+    });
+  } else {
+    // 尚未下載：顯示原始連結檔名
+    html += '<div class="info-text">檔案尚未下載，請先執行批次下載</div>';
+    fileUrls.forEach(url => {
+      const fileName = url.split('/').pop() || url;
+      html += '<div class="file-item file-item-pending">';
+      html += '<span class="file-name">' + esc(fileName) + '</span>';
+      html += '<span class="file-status">未下載</span>';
+      html += '</div>';
+    });
+  }
+
+  container.innerHTML = html;
+
+  // 綁定開啟資料夾按鈕
+  const folderBtn = container.querySelector('#btn-open-folder');
+  if (folderBtn) {
+    folderBtn.onclick = async () => {
+      const r = await api('POST', '/api/files/open-folder', { case_number: caseNumber, car: car });
+      toast(r.message);
+    };
+  }
+
+  // 綁定每個檔案的開啟按鈕
+  container.querySelectorAll('.btn-open-file').forEach(btn => {
+    btn.onclick = async () => {
+      const fileName = btn.dataset.name;
+      const r = await api('POST', '/api/files/open', { case_number: caseNumber, car: car, file_name: fileName });
+      toast(r.message);
+    };
+  });
+}
+
+// 關閉 Modal
+document.getElementById('modal-close').onclick = () => {
+  document.getElementById('case-modal').classList.add('hidden');
+};
+document.getElementById('case-modal').onclick = (e) => {
+  if (e.target === e.currentTarget) {
+    e.currentTarget.classList.add('hidden');
+  }
+};
 
 
 // ─────────────────── 背景任務 ───────────────────
@@ -103,6 +239,7 @@ async function loadTasks() {
         '<div>' + esc(t.message) + ' (' + t.current + '/' + t.total + ')</div>' +
         '<div class="progress-bar"><div class="fill" style="width:' + t.progress + '%"></div></div>';
 
+      // 執行中或待處理：顯示取消按鈕
       if (t.status === '執行中' || t.status === '待處理') {
         const cancelBtn = document.createElement('button');
         cancelBtn.className = 'btn';
@@ -116,8 +253,50 @@ async function loadTasks() {
         card.appendChild(cancelBtn);
       }
 
+      // 任務結果明細（已完成/失敗/已取消且有結果時顯示）
+      if (t.results && t.results.length > 0 && t.status !== '執行中' && t.status !== '待處理') {
+        const toggleBtn = document.createElement('button');
+        toggleBtn.className = 'btn btn-small task-results-toggle';
+        toggleBtn.textContent = '展開結果（' + t.results.length + ' 筆）';
+        toggleBtn.style.marginTop = '8px';
+
+        const resultsDiv = document.createElement('div');
+        resultsDiv.className = 'task-results hidden';
+
+        let tbl = '<table class="task-results-table"><thead><tr><th>案號</th><th>動作</th><th>結果</th><th>原因</th></tr></thead><tbody>';
+        t.results.forEach(r => {
+          const cls = r.success ? 'result-ok' : 'result-fail';
+          tbl += '<tr class="' + cls + '">' +
+            '<td>' + esc(r.number || '') + '</td>' +
+            '<td>' + esc(r.action || '') + '</td>' +
+            '<td>' + (r.success ? '成功' : '失敗') + '</td>' +
+            '<td>' + esc(r.reason || '') + '</td>' +
+          '</tr>';
+        });
+        tbl += '</tbody></table>';
+        resultsDiv.innerHTML = tbl;
+
+        toggleBtn.onclick = () => {
+          const isHidden = resultsDiv.classList.contains('hidden');
+          resultsDiv.classList.toggle('hidden');
+          toggleBtn.textContent = isHidden
+            ? '收合結果（' + t.results.length + ' 筆）'
+            : '展開結果（' + t.results.length + ' 筆）';
+        };
+
+        card.appendChild(toggleBtn);
+        card.appendChild(resultsDiv);
+      }
+
       wrap.appendChild(card);
     });
+
+    // 問題 5 修復：若所有任務都已結束，停止自動輪詢
+    if (taskInterval && res.data.every(t => t.status !== '執行中' && t.status !== '待處理')) {
+      clearInterval(taskInterval);
+      taskInterval = null;
+      loadCases();
+    }
   }
 }
 
@@ -267,6 +446,12 @@ async function loadOptions() {
           sel.value = opts[key] ? '開啟' : '關閉';
           sel.onchange = () => api('PUT', '/api/options', {key, value: sel.value}).then(r => toast(r.message));
           row.appendChild(sel);
+          if (key === 'check') {
+            const hint = document.createElement('span');
+            hint.textContent = '（僅適用於 CLI 模式）';
+            hint.style.cssText = 'font-size:12px;color:#636e72;margin-left:8px;';
+            row.appendChild(hint);
+          }
         } else {
           const inp = document.createElement('input');
           inp.type = 'text';
@@ -527,6 +712,16 @@ document.getElementById('case-filter').onchange = loadCases;
 
 // ─────────────────── 初始化 ───────────────────
 
+async function loadVersion() {
+  try {
+    const res = await api('GET', '/api/version');
+    if (res.success && res.data && res.data.version) {
+      document.getElementById('app-version').textContent = 'v' + res.data.version;
+    }
+  } catch { /* 版本取得失敗不影響功能 */ }
+}
+
 checkAuth();
 loadCases();
 loadSettings();
+loadVersion();

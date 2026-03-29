@@ -26,10 +26,9 @@ def start_download():
                 on_progress=lambda cur, tot, msg: tasks.update_task(
                     task.task_id, current=cur, total=tot, message=msg
                 ),
+                on_result=lambda r: tasks.update_task(task.task_id, result=r),
                 is_cancelled=lambda: tasks.is_cancelled(task.task_id),
             )
-            for r in results:
-                tasks.update_task(task.task_id, result=r)
             tasks.update_task(
                 task.task_id,
                 status=tasks.TaskStatus.COMPLETED,
